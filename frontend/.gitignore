@@ -1,0 +1,89 @@
+######################################################################
+# Frontend (TypeScript / JavaScript / Node / React) - .gitignore
+######################################################################
+
+# ---------- Dependencies ----------
+node_modules/
+bower_components/
+jspm_packages/
+
+# ---------- Package manager caches / metadata ----------
+.npm/
+.pnpm-store/
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# ---------- Build outputs ----------
+dist/
+build/
+out/
+
+# Framework-specific
+.next/
+.nuxt/
+.gatsby/
+.svelte-kit/
+
+# ---------- Tool caches ----------
+.cache/
+.parcel-cache/
+.rspack-cache/
+.vite/
+.eslintcache
+.stylelintcache
+.turbo/
+.nx/cache/
+.swc/
+.rollup.cache/
+
+# ---------- Coverage / test outputs ----------
+coverage/
+.nyc_output/
+junit.xml
+test-results/
+playwright-report/
+playwright/.cache/
+cypress/videos/
+cypress/screenshots/
+
+# ---------- TypeScript ----------
+*.tsbuildinfo
+
+# ---------- Logs ----------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ---------- Env files (secrets) ----------
+.env
+.env.*
+!.env.example
+!.env.template
+!.env.sample
+
+# ---------- Local HTTPS / certs (if any) ----------
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# ---------- IDE / editor ----------
+.vscode/
+.idea/
+*.iml
+
+# ---------- OS junk ----------
+.DS_Store
+Thumbs.db
+
+# ---------- Misc ----------
+*.swp
+*~

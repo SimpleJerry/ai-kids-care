@@ -1,0 +1,97 @@
+######################################################################
+# Java / Spring Boot - .gitignore template
+######################################################################
+
+# ---------- Compiled / packaged ----------
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+
+# ---------- Logs ----------
+*.log
+logs/
+log/
+
+# ---------- JVM crash / diagnostic ----------
+hs_err_pid*
+replay_pid*
+*.hprof
+
+# ---------- IntelliJ IDEA ----------
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# ---------- Eclipse / STS ----------
+.project
+.classpath
+.settings/
+.factorypath
+
+# ---------- NetBeans ----------
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# ---------- VS Code (optional) ----------
+.vscode/
+
+# ---------- Maven ----------
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+# Keep Maven Wrapper binaries
+!.mvn/wrapper/maven-wrapper.jar
+# (Optional) wrapper properties should be committed:
+!.mvn/wrapper/maven-wrapper.properties
+
+# ---------- Gradle ----------
+.gradle/
+**/build/
+!**/src/**/build/
+gradle-app.setting
+# Keep Gradle Wrapper binaries
+!gradle/wrapper/gradle-wrapper.jar
+# (Optional) wrapper properties should be committed:
+!gradle/wrapper/gradle-wrapper.properties
+
+# ---------- Spring Boot / local runtime files ----------
+# If you run with file-based H2 DB locally
+*.mv.db
+*.trace.db
+*.h2.db
+
+# Local-only Spring config (often contains secrets)
+application-local.yml
+application-local.yaml
+application-dev.yml
+application-dev.yaml
+application-test.yml
+application-test.yaml
+
+# Alternatively, ignore any local override config patterns
+# application-*.local.yml
+# application-*.local.yaml
+
+# ---------- Environment files (secrets) ----------
+.env
+.env.*
+!.env.example
+!.env.template
+!.env.sample
+
+# ---------- OS junk ----------
+.DS_Store
+Thumbs.db

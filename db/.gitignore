@@ -1,0 +1,64 @@
+######################################################################
+# db/ - keep scripts, ignore local data/dumps/secrets
+######################################################################
+
+# --- Keep SQL & scripts (default: tracked) ---
+# If you previously ignored db/ somewhere, explicitly re-include:
+!db/
+!db/**/
+
+# (Optional) explicitly keep common script types
+!db/**/*.sql
+!db/**/*.psql
+!db/**/*.pgsql
+!db/**/*.sh
+!db/**/*.py
+!db/**/*.js
+!db/**/*.ts
+!db/**/*.md
+!db/**/README*
+
+# --- Ignore local database data directories (never commit) ---
+db/data/
+db/data/**
+
+# --- Ignore SQLite / local DB files ---
+db/**/*.db
+db/**/*.sqlite
+db/**/*.sqlite3
+db/**/*.db-journal
+db/**/*.sqlite-journal
+db/**/*.sqlite3-journal
+db/**/*.db-wal
+db/**/*.sqlite-wal
+db/**/*.sqlite3-wal
+db/**/*.db-shm
+db/**/*.sqlite-shm
+db/**/*.sqlite3-shm
+
+# --- Ignore Postgres/MySQL dumps & backups (usually large) ---
+db/dumps/
+db/dumps/**
+db/backups/
+db/backups/**
+db/**/*.dump
+db/**/*.bak
+db/**/*.backup
+db/**/*.sql.gz
+db/**/*.sql.zip
+db/**/*.tgz
+db/**/*.tar.gz
+
+# --- Ignore logs / temp files under db ---
+db/**/*.log
+db/**/*.tmp
+db/**/*~
+db/**/.DS_Store
+db/**/Thumbs.db
+
+# --- Ignore local-only config with secrets ---
+db/.env
+db/.env.*
+!db/.env.example
+!db/.env.template
+!db/.env.sample
