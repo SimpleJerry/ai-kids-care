@@ -19,7 +19,7 @@ interface EventDetailModalProps {
   canResolve: boolean;
 }
 
-export function EventDetailModal({ event, onClose, onStatusChange, onAddNote, canResolve }: EventDetailModalProps) {
+export function DetectionEventsDetailModal({ event, onClose, onStatusChange, onAddNote, canResolve }: EventDetailModalProps) {
   const [note, setNote] = useState('');
   const [showNoteInput, setShowNoteInput] = useState(false);
 

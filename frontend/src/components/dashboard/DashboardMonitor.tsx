@@ -10,7 +10,7 @@ import { CameraDetailModal} from '@/components/monitoring/CameraDetailModal';
 import { FullscreenView } from '@/components/monitoring/FullscreenView';
 import { useGetCamerasQuery} from '@/services/apis/camera.api';
 import { useGetEventsQuery, useUpdateEventStatusMutation} from '@/services/apis/event.api';
-import { EventDetailModal } from '@/components/events/EventDetailModal';
+import { DetectionEventsDetailModal } from '@/components/detectionEvents/DetectionEventsDetailModal';
 import { useGetDashboardMetricsQuery } from '@/services/apis/metrics.api';
 import { RightPanel } from '@/components/monitoring/RightPanel';
 import { TopBar } from '@/layout/TopBar';
@@ -176,7 +176,7 @@ export function DashboardMonitor() {
       </div>
 
       {selectedCamera && <CameraDetailModal camera={selectedCamera} onClose={() => setSelectedCamera(null)} onFullscreen={() => { setFullscreenCamera(selectedCamera); setSelectedCamera(null); }} />}
-      {selectedEvent && <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} onStatusChange={handleEventStatusChange} onAddNote={(note) => alert(`메모: ${note}`)} canResolve={permissions.canResolveAnomaly} />}
+      {selectedEvent && <DetectionEventsDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} onStatusChange={handleEventStatusChange} onAddNote={(note) => alert(`메모: ${note}`)} canResolve={permissions.canResolveAnomaly} />}
       {fullscreenCamera && <FullscreenView camera={fullscreenCamera} onClose={() => setFullscreenCamera(null)} />}
     </>
   );
