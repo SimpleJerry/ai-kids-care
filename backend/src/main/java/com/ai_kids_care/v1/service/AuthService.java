@@ -52,10 +52,13 @@ public class AuthService {
         // User
         User user = User.builder()
                 .loginId(request.getLoginId())
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
                 .phone(request.getPhone())
-                .lastLoginAt(OffsetDateTime.now())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .status(StatusEnum.ACTIVE)
+                .lastLoginAt(null)
+                .createdAt(OffsetDateTime.now())
+                .updatedAt(OffsetDateTime.now())
                 .build();
         User userSaved = userRepository.save(user);
 
