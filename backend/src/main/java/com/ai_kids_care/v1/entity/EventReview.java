@@ -25,6 +25,7 @@ public class EventReview {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "event_id", nullable = false)
     private DetectionEvent detectionEvents;
 
     @NotNull
@@ -32,7 +33,7 @@ public class EventReview {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "action", length = Integer.MAX_VALUE)
+    @Transient
     private String action;
 
     @Column(name = "from_status", columnDefinition = "event_status_enum")
