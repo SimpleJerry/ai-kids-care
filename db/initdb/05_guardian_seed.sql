@@ -298,7 +298,7 @@ SELECT 5005,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM guardians WHERE guardian_id = 5005);
 
--- 5-1) teacher user accounts (password: password)
+-- 5-1 teacher user accounts (password: password)
 INSERT INTO users (user_id, login_id, password_hash, email, phone, status, last_login_at, created_at, updated_at)
 SELECT 4101,
        'teacher_4101',
@@ -596,7 +596,7 @@ WHERE NOT EXISTS (SELECT 1
                     AND ura.scope_id = 1001
                     AND ura.status = 'ACTIVE');
 
--- 7-1) role assignment (teacher)
+-- 7-1 role assignment (teacher)
 INSERT INTO user_role_assignments (role_assignment_id, user_id, role, scope_type, scope_id, status, granted_at,
                                    granted_by_user_id, revoked_at)
 SELECT 6101,
