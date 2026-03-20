@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // 👈 fetch 대신 apiClient 사용 (baseUrl은 apiClient 내부에서 처리됨)
       const response = await apiClient.post(`${API_BASE_URL}/auth/login`, {
-        loginId: username,
+        identifier: username,
         password
       });
 

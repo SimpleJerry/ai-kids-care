@@ -94,7 +94,6 @@ const FALLBACK_TEACHER_LEVEL_OPTIONS: CommonCodeItem[] = [
 
 const API_BASE_URL = 'http://localhost:8080/api/v1';
 const LEGACY_API_BASE_URL = 'http://localhost:8080/api';
-const RRN_SEARCH_PATTERN = /^(\d{6})-(\d{7})$/;
 const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9]/g, '');
 const DATE_RANGE_ERROR_MESSAGE = '근무종료일은 근무시작일보다 빠를 수 없습니다.';
 const DATE_RANGE_GUIDE_MESSAGE = '날짜 범위가 올바르지 않습니다. 근무시작일/근무종료일을 확인해주세요.';
@@ -142,7 +141,8 @@ export function useSignup() {
   const [childNameKeyword, setChildNameKeyword] = useState('');
   const [selectedChild, setSelectedChild] = useState<ChildLookupItem | null>(null);
   const [isChildPopupOpen, setIsChildPopupOpen] = useState(false);
-  const [childSearchKeyword, setChildSearchKeyword] = useState('');
+  const [childSearchFirst6, setChildSearchFirst6] = useState('');
+  const [childSearchBack7, setChildSearchBack7] = useState('');
   const [childSearchResults, setChildSearchResults] = useState<ChildLookupItem[]>([]);
   const [isChildSearching, setIsChildSearching] = useState(false);
   const [childSearchError, setChildSearchError] = useState('');
@@ -258,7 +258,8 @@ export function useSignup() {
     setChildNameKeyword('');
     setSelectedChild(null);
     setIsChildPopupOpen(false);
-    setChildSearchKeyword('');
+    setChildSearchFirst6('');
+    setChildSearchBack7('');
     setChildSearchResults([]);
     setIsChildSearching(false);
     setChildSearchError('');
@@ -408,23 +409,22 @@ export function useSignup() {
     setError((prev) => (prev === DATE_RANGE_GUIDE_MESSAGE ? '' : prev));
   }, [memberType, form.startDate, form.endDate]);
 
-  const searchChildren = async (keyword: string) => {
-    const trimmed = keyword.trim();
-    if (!trimmed) {
-      setChildSearchError('주민등록번호 앞6자리-뒷7자리를 입력해주세요. (예: 200101-4037926)');
+  const searchChildren = async (first6Input: string, back7Input: string) => {
+    const first6 = first6Input.replace(/\D/g, '').slice(0, 6);
+    const back7 = back7Input.replace(/\D/g, '').slice(0, 7);
+
+    if (!first6 || !back7) {
+      setChildSearchError('주민등록번호 앞6자리와 뒷7자리를 모두 입력해주세요.');
       setChildSearchResults([]);
       return;
     }
 
-    const normalized = trimmed.replace(/\s/g, '');
-    const rrnMatch = RRN_SEARCH_PATTERN.exec(normalized);
-    if (!rrnMatch) {
-      setChildSearchError('형식이 올바르지 않습니다. 주민등록번호 앞6자리-뒷7자리로 입력해주세요.');
+    if (first6.length !== 6 || back7.length !== 7) {
+      setChildSearchError('형식이 올바르지 않습니다. 앞6자리 / 뒷7자리 숫자로 입력해주세요.');
       setChildSearchResults([]);
       return;
     }
-
-    const rrnKeyword = `${rrnMatch[1]}-${rrnMatch[2]}`;
+    const rrnKeyword = `${first6}-${back7}`;
 
     setChildSearchError('');
     setIsChildSearching(true);
@@ -532,17 +532,17 @@ export function useSignup() {
   };
 
   const openChildPopup = () => {
-    const keyword = childNameKeyword.trim();
-    setChildSearchKeyword(keyword);
     setChildSearchResults([]);
     setChildSearchError('');
     setIsChildPopupOpen(true);
-    if (keyword) void searchChildren(keyword);
+    if (childSearchFirst6.length === 6 && childSearchBack7.length === 7) {
+      void searchChildren(childSearchFirst6, childSearchBack7);
+    }
   };
 
   const selectChild = (child: ChildLookupItem) => {
     setSelectedChild(child);
-    setChildNameKeyword(childSearchKeyword.trim());
+    setChildNameKeyword(`${childSearchFirst6}-${childSearchBack7}`);
     setIsChildPopupOpen(false);
   };
 
@@ -728,11 +728,14 @@ export function useSignup() {
 
       // 회원가입 직후 자동 로그인 처리 (로그인 상태 유지)
       const loginResponse = await loginApi({
-        loginId: form.loginId,
+        identifier: form.loginId,
         password: form.password,
       }).unwrap();
 
-      const { loginId: responseLoginId, role, token, name } = loginResponse;
+      const responseLoginId = loginResponse?.loginId ?? form.loginId;
+      const role = loginResponse?.role ?? 'guardian';
+      const token = loginResponse?.accessToken ?? loginResponse?.token ?? '';
+      const name = loginResponse?.name;
       const user = {
         id: responseLoginId,
         username: responseLoginId,
@@ -754,7 +757,7 @@ export function useSignup() {
     verificationCode, setVerificationCode, isCodeSent, isVerifying, isVerified, verificationMessage,
     handleSendVerificationCode, handleVerifyCode,
     childNameKeyword, setChildNameKeyword, selectedChild, isChildPopupOpen, setIsChildPopupOpen,
-    childSearchKeyword, setChildSearchKeyword, childSearchResults, isChildSearching, childSearchError,
+    childSearchFirst6, setChildSearchFirst6, childSearchBack7, setChildSearchBack7, childSearchResults, isChildSearching, childSearchError,
     searchChildren, openChildPopup, selectChild,
     kindergartenKeyword, setKindergartenKeyword, selectedKindergarten, isKindergartenPopupOpen, setIsKindergartenPopupOpen,
     kindergartenSearchKeyword, setKindergartenSearchKeyword, kindergartenSearchResults, isKindergartenSearching, kindergartenSearchError,

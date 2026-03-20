@@ -40,9 +40,11 @@ export function LoginForm() {
 
     try {
       // RTK Query를 통한 로그인 API 호출 (.unwrap()으로 에러 캐치)
-      const response = await loginApi({ loginId, password }).unwrap();
+      const response = await loginApi({ identifier: loginId, password }).unwrap();
 
-      const { loginId: responseLoginId, role, token } = response;
+      const responseLoginId = response?.loginId ?? loginId;
+      const role = response?.role ?? 'guardian';
+      const token = response?.accessToken ?? response?.token ?? '';
       //console.log('백엔드 로그인 응답 데이터:', response);
 
       const user = {

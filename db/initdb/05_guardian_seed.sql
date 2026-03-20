@@ -156,6 +156,7 @@ WHERE NOT EXISTS (SELECT 1 FROM children WHERE child_id = 3005);
 -- 4) guardian user accounts (password: password)
 -- Verified bcrypt hash
 -- $2a$10$b.n.JJjUqCXeE4oddfSaa.pNAV1bNFVfaGaZJiqemWqWK/c5zSELm
+-- guardian_4001 plaintext password: password
 INSERT INTO users (user_id, login_id, password_hash, email, phone, status, last_login_at, created_at, updated_at)
 SELECT 4001,
        'guardian_4001',
@@ -168,6 +169,7 @@ SELECT 4001,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_id = 4001 OR login_id = 'guardian_4001');
 
+-- guardian_4002 plaintext password: password
 INSERT INTO users (user_id, login_id, password_hash, email, phone, status, last_login_at, created_at, updated_at)
 SELECT 4002,
        'guardian_4002',
@@ -180,6 +182,7 @@ SELECT 4002,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_id = 4002 OR login_id = 'guardian_4002');
 
+-- guardian_4003 plaintext password: password
 INSERT INTO users (user_id, login_id, password_hash, email, phone, status, last_login_at, created_at, updated_at)
 SELECT 4003,
        'guardian_4003',
@@ -192,6 +195,7 @@ SELECT 4003,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_id = 4003 OR login_id = 'guardian_4003');
 
+-- guardian_4004 plaintext password: password
 INSERT INTO users (user_id, login_id, password_hash, email, phone, status, last_login_at, created_at, updated_at)
 SELECT 4004,
        'guardian_4004',
@@ -204,6 +208,7 @@ SELECT 4004,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_id = 4004 OR login_id = 'guardian_4004');
 
+-- guardian_4005 plaintext password: password
 INSERT INTO users (user_id, login_id, password_hash, email, phone, status, last_login_at, created_at, updated_at)
 SELECT 4005,
        'guardian_4005',
@@ -299,6 +304,7 @@ SELECT 5005,
 WHERE NOT EXISTS (SELECT 1 FROM guardians WHERE guardian_id = 5005);
 
 -- 5-1 teacher user accounts (password: password)
+-- teacher_4101 plaintext password: password
 INSERT INTO users (user_id, login_id, password_hash, email, phone, status, last_login_at, created_at, updated_at)
 SELECT 4101,
        'teacher_4101',
@@ -311,6 +317,7 @@ SELECT 4101,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_id = 4101 OR login_id = 'teacher_4101');
 
+-- teacher_4102 plaintext password: password
 INSERT INTO users (user_id, login_id, password_hash, email, phone, status, last_login_at, created_at, updated_at)
 SELECT 4102,
        'teacher_4102',
@@ -323,6 +330,7 @@ SELECT 4102,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_id = 4102 OR login_id = 'teacher_4102');
 
+-- teacher_4103 plaintext password: password
 INSERT INTO users (user_id, login_id, password_hash, email, phone, status, last_login_at, created_at, updated_at)
 SELECT 4103,
        'teacher_4103',

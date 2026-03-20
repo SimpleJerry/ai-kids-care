@@ -76,6 +76,10 @@ npm run dev
   - 예시: `210101-3037926`
 - `children`의 경우 `rrn_first6`은 2020년 이후 생년(`20xxxx`)으로 유지합니다.
 
+## 시드 계정 비밀번호 주석 규칙
+
+`db/initdb` 내 `users.password_hash`가 포함된 시드 `INSERT`에는 해당 계정의 원문 비밀번호를 바로 위 주석으로 함께 기입합니다.
+
 ## 문서
 
 - 통합 문서 인덱스: [`docs/README.md`](docs/README.md)

@@ -13,14 +13,18 @@ const MEMBER_TYPES = [
   { value: 'SUPERADMIN', label: '행정청', description: '행정청 직원 및 관계자',  icon: '🏫'  },
   { value: 'PLATFORM_IT_ADMIN', label: '플랫폼 관리자', description: '시스템 운영 및 모니터링', icon: '🛠️' },
 ] as const;
+const CHILD_SEARCH_EXAMPLES = [
+  { name: '김하린', rrn: '200101-4037926' },
+  { name: '이준호', rrn: '200315-3045123' },
+] as const;
 
 export function SignupForm() {
   const {
     form, onChange, memberType, handleMemberTypeChange,
     verificationCode, setVerificationCode, isCodeSent, isVerifying, isVerified, verificationMessage,
     handleSendVerificationCode, handleVerifyCode,
-    childNameKeyword, setChildNameKeyword, selectedChild, isChildPopupOpen, setIsChildPopupOpen,
-    childSearchKeyword, setChildSearchKeyword, childSearchResults, isChildSearching, childSearchError,
+    selectedChild, isChildPopupOpen, setIsChildPopupOpen,
+    childSearchFirst6, setChildSearchFirst6, childSearchBack7, setChildSearchBack7, childSearchResults, isChildSearching, childSearchError,
     searchChildren, openChildPopup, selectChild,
     kindergartenKeyword, setKindergartenKeyword, selectedKindergarten, isKindergartenPopupOpen, setIsKindergartenPopupOpen,
     kindergartenSearchKeyword, setKindergartenSearchKeyword, kindergartenSearchResults, isKindergartenSearching, kindergartenSearchError,
@@ -70,7 +74,7 @@ export function SignupForm() {
     }
 
     const fieldNameMap: Partial<Record<keyof typeof fieldErrors, string>> = {
-      child: 'childNameKeyword',
+      child: 'childSearchFirst6',
       kindergarten: 'kindergartenKeyword',
       rrn: 'rrnFirst6',
     };
@@ -139,8 +143,10 @@ export function SignupForm() {
           <GuardianForm
             form={form}
             onChange={onChange}
-            childNameKeyword={childNameKeyword}
-            setChildNameKeyword={setChildNameKeyword}
+            childSearchFirst6={childSearchFirst6}
+            setChildSearchFirst6={setChildSearchFirst6}
+            childSearchBack7={childSearchBack7}
+            setChildSearchBack7={setChildSearchBack7}
             selectedChild={selectedChild}
             openChildPopup={openChildPopup}
             rrnFirst6={rrnFirst6}
@@ -237,22 +243,65 @@ export function SignupForm() {
             </div>
 
             <div className="mb-4 flex flex-col gap-3 md:flex-row">
-              <input
-                type="text"
-                value={childSearchKeyword}
-                onChange={(e) => setChildSearchKeyword(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    searchChildren(childSearchKeyword);
-                  }
-                }}
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
-                placeholder="주민등록번호 검색 (예: 200101-4037926)"
-              />
+              <div className="w-full rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                <p className="mb-2 font-medium text-slate-800">예시 복사</p>
+                <div className="flex flex-wrap gap-2">
+                  {CHILD_SEARCH_EXAMPLES.map((item) => (
+                    <button
+                      key={item.rrn}
+                      type="button"
+                      onClick={() => {
+                        const [first6, back7] = item.rrn.split('-');
+                        setChildSearchFirst6(first6);
+                        setChildSearchBack7(back7);
+                        void navigator.clipboard?.writeText(item.rrn).catch(() => {});
+                      }}
+                      className="rounded-md border border-slate-300 bg-white px-3 py-1 text-left hover:bg-slate-100"
+                    >
+                      {item.name} ({item.rrn})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-4 flex flex-col gap-3 md:flex-row">
+              <div className="flex w-full items-center gap-2">
+                <input
+                  type="text"
+                  value={childSearchFirst6}
+                  onChange={(e) => setChildSearchFirst6(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      searchChildren(childSearchFirst6, childSearchBack7);
+                    }
+                  }}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+                  placeholder="앞6자리"
+                  inputMode="numeric"
+                  maxLength={6}
+                />
+                <span className="text-slate-500">-</span>
+                <input
+                  type="password"
+                  value={childSearchBack7}
+                  onChange={(e) => setChildSearchBack7(e.target.value.replace(/\D/g, '').slice(0, 7))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      searchChildren(childSearchFirst6, childSearchBack7);
+                    }
+                  }}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+                  placeholder="뒷7자리"
+                  inputMode="numeric"
+                  maxLength={7}
+                />
+              </div>
               <button
                 type="button"
-                onClick={() => searchChildren(childSearchKeyword)}
+                onClick={() => searchChildren(childSearchFirst6, childSearchBack7)}
                 className="min-w-16 whitespace-nowrap rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-500"
               >
                 검색

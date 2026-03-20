@@ -22,8 +22,10 @@ type GuardianFormProps = {
     confirmPassword: string;
   };
   onChange: (key: 'name' | 'loginId' | 'password' | 'confirmPassword' | 'email' | 'phone', value: string) => void;
-  childNameKeyword: string;
-  setChildNameKeyword: (value: string) => void;
+  childSearchFirst6: string;
+  setChildSearchFirst6: (value: string) => void;
+  childSearchBack7: string;
+  setChildSearchBack7: (value: string) => void;
   selectedChild: ChildLookupItem | null;
   openChildPopup: () => void;
   rrnFirst6: string;
@@ -50,8 +52,10 @@ type GuardianFormProps = {
 export function GuardianForm({
   form,
   onChange,
-  childNameKeyword,
-  setChildNameKeyword,
+  childSearchFirst6,
+  setChildSearchFirst6,
+  childSearchBack7,
+  setChildSearchBack7,
   selectedChild,
   openChildPopup,
   rrnFirst6,
@@ -72,7 +76,7 @@ export function GuardianForm({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleChildNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleChildRrnKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       openChildPopup();
@@ -193,15 +197,31 @@ export function GuardianForm({
       <section>
         <h2 className="mb-3 text-sm font-semibold text-slate-700">아이 찾기</h2>
         <div className="flex flex-col gap-3 md:flex-row md:items-stretch">
-          <input
-            type="text"
-            name="childNameKeyword"
-            value={childNameKeyword}
-            onChange={(e) => setChildNameKeyword(e.target.value)}
-            onKeyDown={handleChildNameKeyDown}
-            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500 md:w-[85%]"
-            placeholder="주민등록번호 앞6자리-뒷7자리 입력 (예: 200101-4037926)"
-          />
+          <div className="flex w-full items-center gap-2 md:w-[85%]">
+            <input
+              type="text"
+              name="childSearchFirst6"
+              value={childSearchFirst6}
+              onChange={(e) => setChildSearchFirst6(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onKeyDown={handleChildRrnKeyDown}
+              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+              placeholder="앞6자리"
+              inputMode="numeric"
+              maxLength={6}
+            />
+            <span className="text-slate-500">-</span>
+            <input
+              type="password"
+              name="childSearchBack7"
+              value={childSearchBack7}
+              onChange={(e) => setChildSearchBack7(e.target.value.replace(/\D/g, '').slice(0, 7))}
+              onKeyDown={handleChildRrnKeyDown}
+              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+              placeholder="뒷7자리"
+              inputMode="numeric"
+              maxLength={7}
+            />
+          </div>
           <button
             type="button"
             onClick={openChildPopup}

@@ -39,14 +39,18 @@ public class ChildService {
         if (rrnMatcher.matches()) {
             String rrnFirst6 = rrnMatcher.group(1);
             String rrnBack7 = rrnMatcher.group(2);
-            List<Child> candidates = childRepository.findByRrnFirst6(rrnFirst6);
-            List<Child> matched = candidates.stream()
-                    .filter(child -> isRrnBack7Matched(child.getRrnEncrypted(), rrnBack7))
-                    .toList();
-            return new org.springframework.data.domain.PageImpl<>(matched, pageable, matched.size());
+            return listChildrenByRrnParts(rrnFirst6, rrnBack7, pageable);
         }
 
         return childRepository.findByNameContains(trimmed, pageable);
+    }
+
+    public Page<Child> listChildrenByRrnParts(String rrnFirst6, String rrnBack7, Pageable pageable) {
+        List<Child> candidates = childRepository.findByRrnFirst6(rrnFirst6);
+        List<Child> matched = candidates.stream()
+                .filter(child -> isRrnBack7Matched(child.getRrnEncrypted(), rrnBack7))
+                .toList();
+        return new org.springframework.data.domain.PageImpl<>(matched, pageable, matched.size());
     }
 
     private boolean isRrnBack7Matched(String rrnEncrypted, String rrnBack7) {
