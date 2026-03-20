@@ -56,7 +56,7 @@ public class AuthService {
                 .phone(request.getPhone())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .status(StatusEnum.ACTIVE)
-                .lastLoginAt(OffsetDateTime.now())
+                .lastLoginAt(null)
                 .createdAt(OffsetDateTime.now())
                 .updatedAt(OffsetDateTime.now())
                 .build();
