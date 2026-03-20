@@ -200,7 +200,7 @@ export function GuardianForm({
             onChange={(e) => setChildNameKeyword(e.target.value)}
             onKeyDown={handleChildNameKeyDown}
             className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500 md:w-[85%]"
-            placeholder="아이 이름 입력 후 Enter"
+            placeholder="주민등록번호 앞6자리-뒷7자리 입력 (예: 200101-4037926)"
           />
           <button
             type="button"

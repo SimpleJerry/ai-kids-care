@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -26,6 +27,7 @@ public class Child {
     private Long id;
 
     @NotNull
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "kindergarten_id", nullable = false)
     private Kindergarten kindergarten;

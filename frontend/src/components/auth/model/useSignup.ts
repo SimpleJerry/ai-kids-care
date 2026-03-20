@@ -35,6 +35,20 @@ type ChildLookupItem = {
   birthDate: string | null;
   gender: string | null;
 };
+
+type ChildApiItem = {
+  childId?: number;
+  id?: number;
+  kindergartenId?: number;
+  classId?: number | null;
+  className?: string | null;
+  name?: string;
+  childNo?: string | null;
+  birthDate?: string | null;
+  gender?: string | null;
+  kindergarten?: { id?: number };
+  class?: { id?: number; name?: string | null };
+};
 type GenderChoice = 'MALE' | 'FEMALE' | '';
 type CommonCodeItem = {
   codeGroup: string;
@@ -80,6 +94,7 @@ const FALLBACK_TEACHER_LEVEL_OPTIONS: CommonCodeItem[] = [
 
 const API_BASE_URL = 'http://localhost:8080/api/v1';
 const LEGACY_API_BASE_URL = 'http://localhost:8080/api';
+const RRN_SEARCH_PATTERN = /^(\d{6})-(\d{7})$/;
 const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9]/g, '');
 const DATE_RANGE_ERROR_MESSAGE = '근무종료일은 근무시작일보다 빠를 수 없습니다.';
 const DATE_RANGE_GUIDE_MESSAGE = '날짜 범위가 올바르지 않습니다. 근무시작일/근무종료일을 확인해주세요.';
@@ -396,19 +411,29 @@ export function useSignup() {
   const searchChildren = async (keyword: string) => {
     const trimmed = keyword.trim();
     if (!trimmed) {
-      setChildSearchError('아이 이름을 입력해주세요.');
+      setChildSearchError('주민등록번호 앞6자리-뒷7자리를 입력해주세요. (예: 200101-4037926)');
       setChildSearchResults([]);
       return;
     }
 
+    const normalized = trimmed.replace(/\s/g, '');
+    const rrnMatch = RRN_SEARCH_PATTERN.exec(normalized);
+    if (!rrnMatch) {
+      setChildSearchError('형식이 올바르지 않습니다. 주민등록번호 앞6자리-뒷7자리로 입력해주세요.');
+      setChildSearchResults([]);
+      return;
+    }
+
+    const rrnKeyword = `${rrnMatch[1]}-${rrnMatch[2]}`;
+
     setChildSearchError('');
     setIsChildSearching(true);
     try {
-      const encodedName = encodeURIComponent(trimmed);
+      const encodedKeyword = encodeURIComponent(rrnKeyword);
       const candidateUrls = [
-        `${API_BASE_URL}/children?name=${encodedName}`,
-        `${API_BASE_URL}/auth/children?name=${encodedName}`,
-        `${LEGACY_API_BASE_URL}/auth/children?name=${encodedName}`,
+        `${API_BASE_URL}/children?keyword=${encodedKeyword}`,
+        `${API_BASE_URL}/auth/children?keyword=${encodedKeyword}`,
+        `${LEGACY_API_BASE_URL}/auth/children?keyword=${encodedKeyword}`,
       ];
 
       let data: ChildLookupItem[] | null = null;
@@ -425,7 +450,38 @@ export function useSignup() {
           continue;
         }
 
-        data = await response.json();
+        const payload = await response.json();
+        const rawItems: ChildApiItem[] = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.content)
+            ? payload.content
+            : [];
+
+        data = rawItems
+          .map((item) => {
+            const childId = Number(item.childId ?? item.id ?? 0);
+            const kindergartenId = Number(item.kindergartenId ?? item.kindergarten?.id ?? 0);
+            const classId =
+              item.classId !== undefined
+                ? item.classId
+                : (item.class?.id ?? null);
+            const className =
+              item.className !== undefined
+                ? item.className
+                : (item.class?.name ?? null);
+
+            return {
+              childId,
+              kindergartenId,
+              classId,
+              className,
+              name: item.name ?? '',
+              childNo: item.childNo ?? null,
+              birthDate: item.birthDate ?? null,
+              gender: item.gender ?? null,
+            } satisfies ChildLookupItem;
+          })
+          .filter((item) => item.childId > 0 && item.name);
         break;
       }
 
@@ -486,7 +542,7 @@ export function useSignup() {
 
   const selectChild = (child: ChildLookupItem) => {
     setSelectedChild(child);
-    setChildNameKeyword(child.name);
+    setChildNameKeyword(childSearchKeyword.trim());
     setIsChildPopupOpen(false);
   };
 

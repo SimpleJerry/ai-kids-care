@@ -248,7 +248,7 @@ export function SignupForm() {
                   }
                 }}
                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
-                placeholder="아이 이름 검색 (예: 김하린 or 이준호 or 박서윤 or 최민우 or 정지안 or 박서윤)"
+                placeholder="주민등록번호 검색 (예: 200101-4037926)"
               />
               <button
                 type="button"
