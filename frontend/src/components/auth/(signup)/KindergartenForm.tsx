@@ -86,6 +86,7 @@ type KindergartenFormProps = {
       string
     >
   >;
+  onAccountFieldBlur?: (field: 'loginId' | 'email' | 'phone', value: string) => void;
 };
 
 export function KindergartenForm({
@@ -109,6 +110,7 @@ export function KindergartenForm({
   startDateInputRef,
   endDateInputRef,
   fieldErrors,
+  onAccountFieldBlur,
 }: KindergartenFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -146,6 +148,7 @@ export function KindergartenForm({
               name="loginId"
               value={form.loginId}
               onChange={(e) => onChange('loginId', e.target.value)}
+              onBlur={(e) => onAccountFieldBlur?.('loginId', e.target.value)}
               className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
               placeholder="teacher-id"
               required
@@ -159,6 +162,7 @@ export function KindergartenForm({
               name="email"
               value={form.email}
               onChange={(e) => onChange('email', e.target.value)}
+              onBlur={(e) => onAccountFieldBlur?.('email', e.target.value)}
               className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
               placeholder="email@example.com"
               required
@@ -172,6 +176,7 @@ export function KindergartenForm({
               name="phone"
               value={form.phone}
               onChange={(e) => onChange('phone', e.target.value)}
+              onBlur={(e) => onAccountFieldBlur?.('phone', e.target.value)}
               className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
               placeholder="010-0000-0000"
               required

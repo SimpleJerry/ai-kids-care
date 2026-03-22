@@ -27,6 +27,8 @@ replay_pid*
 *.ipr
 *.iws
 out/
+# Eclipse / 일부 IDE: 컴파일·annotation processor 출력 (MapStruct *MapperImpl 등) — 커밋 금지
+bin/
 
 # ---------- Eclipse / STS ----------
 .project

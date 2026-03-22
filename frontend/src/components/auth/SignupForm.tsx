@@ -44,7 +44,8 @@ export function SignupForm() {
     rrnFirst6, setRrnFirst6, rrnBack7, onRrnBack7Change, gender, genderOptions,
     teacherLevelOptions,
     isPrimaryGuardian, setIsPrimaryGuardian, relationship, setRelationship, customRelationship, setCustomRelationship,
-    filteredRelationshipOptions, agreeTerms, setAgreeTerms, error, fieldErrors, isSubmitting, isValid, handleSubmit
+    filteredRelationshipOptions, agreeTerms, setAgreeTerms, error, fieldErrors, isSubmitting, isValid, handleSubmit,
+    handleAccountFieldBlur,
   } = useSignup();
   const startDateInputRef = useRef<HTMLInputElement | null>(null);
   const endDateInputRef = useRef<HTMLInputElement | null>(null);
@@ -193,6 +194,7 @@ export function SignupForm() {
             isPrimaryGuardian={isPrimaryGuardian}
             setIsPrimaryGuardian={setIsPrimaryGuardian}
             fieldErrors={fieldErrors}
+            onAccountFieldBlur={handleAccountFieldBlur}
           />
         )}
 
@@ -201,6 +203,7 @@ export function SignupForm() {
             form={form}
             onChange={onChange}
             fieldErrors={fieldErrors}
+            onAccountFieldBlur={handleAccountFieldBlur}
           />
         )}
 
@@ -226,6 +229,7 @@ export function SignupForm() {
             startDateInputRef={startDateInputRef}
             endDateInputRef={endDateInputRef}
             fieldErrors={fieldErrors}
+            onAccountFieldBlur={handleAccountFieldBlur}
           />
         )}
 
@@ -234,6 +238,7 @@ export function SignupForm() {
             form={form}
             onChange={onChange}
             fieldErrors={fieldErrors}
+            onAccountFieldBlur={handleAccountFieldBlur}
           />
         )}
 

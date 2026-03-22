@@ -47,6 +47,8 @@ type GuardianFormProps = {
       string
     >
   >;
+  /** 로그인 ID·이메일·연락처 중복 검사 (포커스 아웃) */
+  onAccountFieldBlur?: (field: 'loginId' | 'email' | 'phone', value: string) => void;
 };
 
 export function GuardianForm({
@@ -72,6 +74,7 @@ export function GuardianForm({
   isPrimaryGuardian,
   setIsPrimaryGuardian,
   fieldErrors,
+  onAccountFieldBlur,
 }: GuardianFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -108,6 +111,7 @@ export function GuardianForm({
             name="loginId"
               value={form.loginId}
               onChange={(e) => onChange('loginId', e.target.value)}
+              onBlur={(e) => onAccountFieldBlur?.('loginId', e.target.value)}
               className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
               placeholder="your-id"
               required
@@ -118,9 +122,10 @@ export function GuardianForm({
             <label className="mb-2 block text-sm font-medium text-slate-700">이메일</label>
             <input
               type="email"
-            name="email"
+              name="email"
               value={form.email}
               onChange={(e) => onChange('email', e.target.value)}
+              onBlur={(e) => onAccountFieldBlur?.('email', e.target.value)}
               className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
               placeholder="email@example.com"
               required
@@ -135,6 +140,7 @@ export function GuardianForm({
                 name="phone"
                 value={form.phone}
                 onChange={(e) => onChange('phone', e.target.value)}
+                onBlur={(e) => onAccountFieldBlur?.('phone', e.target.value)}
                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                 placeholder="010-0000-0000"
                 required

@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLoginMutation } from '@/services/apis/auth.api';
+import { fetchRegisterFieldAvailability, useLoginMutation } from '@/services/apis/auth.api';
 import { useAppDispatch } from '@/store/hook';
 import { setCredentials } from '@/store/slices/userSlice';
 import type { UserRole } from '@/types/anomaly';
@@ -94,6 +94,11 @@ const FALLBACK_TEACHER_LEVEL_OPTIONS: CommonCodeItem[] = [
 ];
 
 const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9]/g, '');
+
+function isDuplicateAccountFieldMessage(msg: string | undefined): boolean {
+  if (!msg) return false;
+  return msg.includes('이미 사용 중인') || msg.includes('이미 등록된 연락처');
+}
 const DATE_RANGE_ERROR_MESSAGE = '근무종료일은 근무시작일보다 빠를 수 없습니다.';
 const DATE_RANGE_GUIDE_MESSAGE = '날짜 범위가 올바르지 않습니다. 근무시작일/근무종료일을 확인해주세요.';
 const INITIAL_FORM_STATE = {
@@ -183,6 +188,47 @@ export function useSignup() {
     });
   }, [relationshipOptions, gender]);
 
+  const accountDuplicateBlocked = useMemo(
+    () =>
+      isDuplicateAccountFieldMessage(fieldErrors.loginId) ||
+      isDuplicateAccountFieldMessage(fieldErrors.email) ||
+      isDuplicateAccountFieldMessage(fieldErrors.phone),
+    [fieldErrors.loginId, fieldErrors.email, fieldErrors.phone]
+  );
+
+  const handleAccountFieldBlur = useCallback(async (field: 'loginId' | 'email' | 'phone', rawValue: string) => {
+    const trimmed = rawValue.trim();
+    if (!trimmed) {
+      setFieldErrors((p) => ({ ...p, [field]: '' }));
+      return;
+    }
+    if (field === 'loginId' && trimmed.length < 2) {
+      return;
+    }
+    if (field === 'email') {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+        setFieldErrors((p) => ({ ...p, email: '올바른 이메일 형식을 입력해주세요.' }));
+        return;
+      }
+    }
+    if (field === 'phone') {
+      const digits = trimmed.replace(/\D/g, '');
+      if (digits.length < 8) {
+        return;
+      }
+    }
+    try {
+      const { available, message } = await fetchRegisterFieldAvailability(field, trimmed);
+      setFieldErrors((p) => ({
+        ...p,
+        [field]: available ? '' : (message ?? '이미 사용 중입니다.'),
+      }));
+      if (available) setError('');
+    } catch {
+      // 포커스 아웃 검사만 생략
+    }
+  }, []);
+
   // 💡 폼 유효성 검사 (인증 여부 조건은 임시 제외)
   const isValid = useMemo(() => {
     const commonValid = !!(
@@ -194,6 +240,10 @@ export function useSignup() {
       form.phone.trim() &&
       agreeTerms
     );
+
+    if (accountDuplicateBlocked) {
+      return false;
+    }
 
     if (memberType === 'GUARDIAN') {
       return !!(
@@ -230,7 +280,18 @@ export function useSignup() {
     }
 
     return commonValid;
-  }, [form, memberType, rrnFirst6, rrnBack7, relationship, customRelationship, selectedChild, selectedKindergarten, agreeTerms]);
+  }, [
+    form,
+    memberType,
+    rrnFirst6,
+    rrnBack7,
+    relationship,
+    customRelationship,
+    selectedChild,
+    selectedKindergarten,
+    agreeTerms,
+    accountDuplicateBlocked,
+  ]);
 
   const onChange = (key: keyof typeof form, value: string) => {
     const nextValue = key === 'loginId' ? normalizeLoginId(value) : value;
@@ -579,6 +640,14 @@ export function useSignup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (
+      isDuplicateAccountFieldMessage(fieldErrors.loginId) ||
+      isDuplicateAccountFieldMessage(fieldErrors.email) ||
+      isDuplicateAccountFieldMessage(fieldErrors.phone)
+    ) {
+      setError('로그인 ID·이메일·연락처 중복 안내를 확인한 뒤 수정해주세요.');
+      return;
+    }
     setError('');
     setFieldErrors({});
 
@@ -848,7 +917,8 @@ export function useSignup() {
     rrnFirst6, setRrnFirst6, rrnBack7, onRrnBack7Change, gender, genderOptions,
     teacherLevelOptions,
     isPrimaryGuardian, setIsPrimaryGuardian, relationship, setRelationship, customRelationship, setCustomRelationship,
-    filteredRelationshipOptions, agreeTerms, setAgreeTerms, error, fieldErrors, isSubmitting, isValid, handleSubmit
+    filteredRelationshipOptions, agreeTerms, setAgreeTerms, error, fieldErrors, isSubmitting, isValid, handleSubmit,
+    handleAccountFieldBlur,
   };
 }
 
@@ -859,15 +929,38 @@ function mapBackendErrorToField(
   if (!setFieldErrors) return;
   if (!backendMessage) return;
 
-  if (backendMessage.includes('전화번호') && backendMessage.includes('중복')) {
-    setFieldErrors((prev) => ({ ...prev, phone: backendMessage }));
+  const lower = backendMessage.toLowerCase();
+
+  if (
+    lower.includes('uq_user_account_phone') ||
+    ((lower.includes('phone') || backendMessage.includes('전화번호') || backendMessage.includes('연락처')) &&
+      (lower.includes('unique') || lower.includes('duplicate') || backendMessage.includes('중복')))
+  ) {
+    setFieldErrors((prev) => ({
+      ...prev,
+      phone: backendMessage.includes('중복') ? backendMessage : '이미 등록된 연락처(전화번호)입니다.',
+    }));
     return;
   }
-  if (backendMessage.includes('로그인 ID') && backendMessage.includes('중복')) {
-    setFieldErrors((prev) => ({ ...prev, loginId: backendMessage }));
+  if (
+    lower.includes('uq_user_account_email') ||
+    (lower.includes('email') && (lower.includes('unique') || lower.includes('duplicate'))) ||
+    (backendMessage.includes('이메일') && backendMessage.includes('중복'))
+  ) {
+    setFieldErrors((prev) => ({
+      ...prev,
+      email: backendMessage.includes('중복') ? backendMessage : '이미 사용 중인 이메일입니다.',
+    }));
     return;
   }
-  if (backendMessage.includes('이메일') && backendMessage.includes('중복')) {
-    setFieldErrors((prev) => ({ ...prev, email: backendMessage }));
+  if (
+    lower.includes('users_login_id') ||
+    (lower.includes('login_id') && (lower.includes('unique') || lower.includes('duplicate'))) ||
+    (backendMessage.includes('로그인 ID') && backendMessage.includes('중복'))
+  ) {
+    setFieldErrors((prev) => ({
+      ...prev,
+      loginId: backendMessage.includes('중복') ? backendMessage : '이미 사용 중인 로그인 ID입니다.',
+    }));
   }
 }

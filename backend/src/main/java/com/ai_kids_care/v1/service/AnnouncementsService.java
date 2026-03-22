@@ -1,6 +1,9 @@
 package com.ai_kids_care.v1.service;
 
 import com.ai_kids_care.v1.dto.*;
+import com.ai_kids_care.v1.entity.Announcement;
+import com.ai_kids_care.v1.mapper.AnnouncementMapper;
+import com.ai_kids_care.v1.repository.AnnouncementRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -8,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
@@ -16,6 +21,8 @@ public class AnnouncementsService {
 
     private final JdbcTemplate jdbcTemplate;
     private final CommonCodeService commonCodeService;
+    private final AnnouncementRepository announcementRepository;
+    private final AnnouncementMapper announcementMapper;
 
     @Transactional(readOnly = true)
     public List<AnnouncementSummaryResponse> listAnnouncements(String keyword) {
@@ -71,7 +78,7 @@ public class AnnouncementsService {
     }
 
     @Transactional
-    public AnnouncementDetailResponse getAnnouncementDetail(Long id) {
+    public AnnouncementDetailResponse getAnnouncement(Long id) {
         if (id == null) {
             throw new RuntimeException("공지사항 ID가 필요합니다.");
         }
@@ -177,45 +184,24 @@ public class AnnouncementsService {
             publishedAt = Instant.now();
         }
 
-//        User user = User.builder()
-//                .loginId(request.getLoginId())
-//                .email(request.getEmail())
-//                .phone(request.getPhone())
-//                .passwordHash(passwordEncoder.encode(request.getPassword()))
-//                .status(StatusEnum.ACTIVE)
-//                .lastLoginAt(null)
-//                .createdAt(OffsetDateTime.now())
-//                .updatedAt(OffsetDateTime.now())
-//                .build();
-//        User userSaved = userRepository.save(user);
+        AnnouncementCreateDTO createDTO = new AnnouncementCreateDTO();
+        createDTO.setAuthorId(authorId);
+        createDTO.setTitle(request.getTitle().trim());
+        createDTO.setBody(request.getBody().trim());
+        createDTO.setIsPinned(pinned);
+        createDTO.setPinnedUntil(toOffsetDateTime(request.getPinnedUntil()));
+        createDTO.setStatus(normalizedStatus);
+        createDTO.setPublishedAt(toOffsetDateTime(publishedAt));
+        createDTO.setStartsAt(toOffsetDateTime(request.getStartsAt()));
+        createDTO.setEndsAt(toOffsetDateTime(request.getEndsAt()));
+        createDTO.setViewCount(0L);
 
-        Long createdId = jdbcTemplate.queryForObject(
-                """
-                INSERT INTO announcements
-                    (author_id, title, body, is_pinned, pinned_until, status, published_at, starts_at, ends_at, created_at, updated_at)
-                VALUES
-                    (?, ?, ?, ?, ?, CAST(? AS status_enum), ?, ?, ?, now(), now())
-                RETURNING id
-                """,
-                Long.class,
-                authorId,
-                request.getTitle().trim(),
-                request.getBody().trim(),
-                pinned,
-                toTimestamp(request.getPinnedUntil()),
-                normalizedStatus,
-                toTimestamp(publishedAt),
-                toTimestamp(request.getStartsAt()),
-                toTimestamp(request.getEndsAt())
-        );
-
-
-
-
-        if (createdId == null) {
-            throw new RuntimeException("공지사항 저장에 실패했습니다.");
-        }
-        return new AnnouncementCreateResponse(createdId, "공지사항이 등록되었습니다.");
+        Announcement entity = announcementMapper.toEntity(createDTO);
+        OffsetDateTime now = OffsetDateTime.now();
+        entity.setCreatedAt(now);
+        entity.setUpdatedAt(now);
+        Announcement saved = announcementRepository.save(entity);
+        return new AnnouncementCreateResponse(saved.getId(), "공지사항이 등록되었습니다.");
     }
 
     @Transactional
@@ -231,42 +217,34 @@ public class AnnouncementsService {
         }
         validateCreateRequest(request);
 
+        Announcement entity = announcementRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new RuntimeException("공지사항을 찾을 수 없습니다."));
+
         String normalizedStatus = request.getStatus().trim().toUpperCase();
         Instant publishedAt = request.getPublishedAt();
         if (publishedAt == null && "ACTIVE".equals(normalizedStatus)) {
             publishedAt = Instant.now();
         }
 
-        int updated = jdbcTemplate.update(
-                """
-                UPDATE announcements
-                   SET title = ?,
-                       body = ?,
-                       is_pinned = ?,
-                       pinned_until = ?,
-                       status = CAST(? AS status_enum),
-                       published_at = ?,
-                       starts_at = ?,
-                       ends_at = ?,
-                       updated_at = now()
-                 WHERE id = ?
-                   AND deleted_at IS NULL
-                """,
-                request.getTitle().trim(),
-                request.getBody().trim(),
-                Boolean.TRUE.equals(request.getPinned()),
-                toTimestamp(request.getPinnedUntil()),
-                normalizedStatus,
-                toTimestamp(publishedAt),
-                toTimestamp(request.getStartsAt()),
-                toTimestamp(request.getEndsAt()),
-                id
-        );
+        AnnouncementUpdateDTO updateDTO = new AnnouncementUpdateDTO();
+        updateDTO.setTitle(request.getTitle().trim());
+        updateDTO.setBody(request.getBody().trim());
+        updateDTO.setIsPinned(Boolean.TRUE.equals(request.getPinned()));
+        updateDTO.setStatus(normalizedStatus);
+        updateDTO.setPublishedAt(toOffsetDateTime(publishedAt));
+        updateDTO.setPinnedUntil(toOffsetDateTime(request.getPinnedUntil()));
+        updateDTO.setStartsAt(toOffsetDateTime(request.getStartsAt()));
+        updateDTO.setEndsAt(toOffsetDateTime(request.getEndsAt()));
 
-        if (updated == 0) {
-            throw new RuntimeException("공지사항을 찾을 수 없습니다.");
-        }
+        announcementMapper.updateEntity(updateDTO, entity);
+        // JDBC와 동일하게 NULL이면 컬럼 비움. MapStruct는 null DTO 필드를 무시하므로 시각 필드는 요청 값으로 덮어쓴다.
+        entity.setPinnedUntil(toOffsetDateTime(request.getPinnedUntil()));
+        entity.setPublishedAt(toOffsetDateTime(publishedAt));
+        entity.setStartsAt(toOffsetDateTime(request.getStartsAt()));
+        entity.setEndsAt(toOffsetDateTime(request.getEndsAt()));
+        entity.setUpdatedAt(OffsetDateTime.now());
 
+        announcementRepository.save(entity);
         return new AnnouncementCreateResponse(id, "공지사항이 수정되었습니다.");
     }
 
@@ -282,21 +260,17 @@ public class AnnouncementsService {
             throw new RuntimeException("공지사항 ID가 필요합니다.");
         }
 
-        int updated = jdbcTemplate.update(
-                """
-                UPDATE announcements
-                   SET deleted_at = now(),
-                       updated_at = now()
-                 WHERE id = ?
-                   AND deleted_at IS NULL
-                """,
-                id
-        );
+        Announcement entity = announcementRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new RuntimeException("공지사항을 찾을 수 없습니다."));
 
-        if (updated == 0) {
-            throw new RuntimeException("공지사항을 찾을 수 없습니다.");
-        }
+        OffsetDateTime now = OffsetDateTime.now();
+        AnnouncementUpdateDTO updateDTO = new AnnouncementUpdateDTO();
+        updateDTO.setDeletedAt(now);
 
+        announcementMapper.updateEntity(updateDTO, entity);
+        entity.setUpdatedAt(now);
+
+        announcementRepository.save(entity);
         return new AnnouncementCreateResponse(id, "공지사항이 삭제되었습니다.");
     }
 
@@ -378,5 +352,9 @@ public class AnnouncementsService {
 
     private Timestamp toTimestamp(Instant value) {
         return value == null ? null : Timestamp.from(value);
+    }
+
+    private static OffsetDateTime toOffsetDateTime(Instant value) {
+        return value == null ? null : OffsetDateTime.ofInstant(value, ZoneOffset.UTC);
     }
 }

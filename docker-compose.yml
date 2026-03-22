@@ -11,7 +11,7 @@ services:
       dockerfile: Dockerfile
     container_name: backend
     environment:
-      # logback-spring.xml 의 dev 프로파일(logs_dev/) 사용
+      # application.yml 의 dev 프로파일(logging → logs_dev/) 사용
       SPRING_PROFILES_ACTIVE: dev
       DB_HOST: db
       DB_PORT: 5432

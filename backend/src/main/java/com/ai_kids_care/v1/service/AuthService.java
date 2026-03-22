@@ -15,8 +15,10 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -25,6 +27,7 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -53,6 +56,7 @@ public class AuthService {
         log.info("[START] register loginId={}, userRole={}", request.getLoginId(), request.getUserRole());
         try {
             validateRegisterRequest(request);
+            assertRegisterCredentialsAvailable(request);
 
             Child resolvedChild = null;
             Long kindergartenScopeId = request.getKindergartenId();
@@ -132,6 +136,28 @@ public class AuthService {
                     .build();
         } finally {
             log.debug("[END] register loginId={}", request.getLoginId());
+        }
+    }
+
+    /**
+     * DB 유니크 제약(uq_user_account_*) 위반 전에 동일 조건으로 선검사 — 프론트 blur 검사를 건너뛴 경우에도 한글 메시지로 응답 가능.
+     */
+    private void assertRegisterCredentialsAvailable(AuthRegisterRequest request) {
+        if (request.getLoginId() != null && StringUtils.hasText(request.getLoginId().trim())) {
+            if (userRepository.existsByLoginId(request.getLoginId().trim())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 사용 중인 로그인 ID입니다.");
+            }
+        }
+        if (request.getEmail() != null && StringUtils.hasText(request.getEmail().trim())) {
+            if (userRepository.existsByEmailIgnoreCase(request.getEmail().trim())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다.");
+            }
+        }
+        if (request.getPhone() != null && StringUtils.hasText(request.getPhone().trim())) {
+            String digits = request.getPhone().trim().replaceAll("\\D", "");
+            if (!digits.isEmpty() && userRepository.countByPhoneDigitsOnly(digits) > 0) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 등록된 연락처(전화번호)입니다.");
+            }
         }
     }
 
@@ -441,5 +467,38 @@ public class AuthService {
         } finally {
             log.info("[END] registerSuperadmin userId={}", user.getId());
         }
+    }
+
+    /**
+     * 회원가입 폼에서 포커스 아웃 시 호출하는 중복 검사 (공개 API).
+     */
+    @Transactional(readOnly = true)
+    public RegisterFieldAvailabilityResponse checkRegisterFieldAvailability(String field, String value) {
+        if (!StringUtils.hasText(field)) {
+            throw new IllegalArgumentException("field 파라미터가 필요합니다.");
+        }
+        if (!StringUtils.hasText(value)) {
+            return new RegisterFieldAvailabilityResponse(true, null);
+        }
+        String trimmed = value.trim();
+        String f = field.trim().toLowerCase(Locale.ROOT).replace("-", "");
+        return switch (f) {
+            case "loginid" -> userRepository.existsByLoginId(trimmed)
+                    ? new RegisterFieldAvailabilityResponse(false, "이미 사용 중인 로그인 ID입니다.")
+                    : new RegisterFieldAvailabilityResponse(true, null);
+            case "email" -> userRepository.existsByEmailIgnoreCase(trimmed)
+                    ? new RegisterFieldAvailabilityResponse(false, "이미 사용 중인 이메일입니다.")
+                    : new RegisterFieldAvailabilityResponse(true, null);
+            case "phone" -> {
+                String digits = trimmed.replaceAll("\\D", "");
+                if (digits.isEmpty()) {
+                    yield new RegisterFieldAvailabilityResponse(true, null);
+                }
+                yield userRepository.countByPhoneDigitsOnly(digits) > 0
+                        ? new RegisterFieldAvailabilityResponse(false, "이미 등록된 연락처(전화번호)입니다.")
+                        : new RegisterFieldAvailabilityResponse(true, null);
+            }
+            default -> throw new IllegalArgumentException("지원하지 않는 검증 항목입니다: " + field);
+        };
     }
 }
