@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLoginMutation } from '@/services/apis/auth.api';
+import { fetchRegisterFieldAvailability, useLoginMutation } from '@/services/apis/auth.api';
 import { useAppDispatch } from '@/store/hook';
 import { setCredentials } from '@/store/slices/userSlice';
 import type { UserRole } from '@/types/anomaly';
+import { API_BASE_URL, LEGACY_API_BASE_URL } from '@/config/api';
 
 type MemberType = 'GUARDIAN' | 'KINDERGARTEN' | 'SUPERADMIN' | 'PLATFORM_IT_ADMIN';
 type FieldErrorKey =
@@ -34,6 +35,20 @@ type ChildLookupItem = {
   childNo: string | null;
   birthDate: string | null;
   gender: string | null;
+};
+
+type ChildApiItem = {
+  childId?: number;
+  id?: number;
+  kindergartenId?: number;
+  classId?: number | null;
+  className?: string | null;
+  name?: string;
+  childNo?: string | null;
+  birthDate?: string | null;
+  gender?: string | null;
+  kindergarten?: { id?: number };
+  class?: { id?: number; name?: string | null };
 };
 type GenderChoice = 'MALE' | 'FEMALE' | '';
 type CommonCodeItem = {
@@ -78,9 +93,12 @@ const FALLBACK_TEACHER_LEVEL_OPTIONS: CommonCodeItem[] = [
   { codeGroup: 'teachers', parentCode: 'level', code: 'TEACHER', codeName: '일반교사', sortOrder: 3 },
 ];
 
-const API_BASE_URL = 'http://localhost:8080/api/v1';
-const LEGACY_API_BASE_URL = 'http://localhost:8080/api';
 const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9]/g, '');
+
+function isDuplicateAccountFieldMessage(msg: string | undefined): boolean {
+  if (!msg) return false;
+  return msg.includes('이미 사용 중인') || msg.includes('이미 등록된 연락처');
+}
 const DATE_RANGE_ERROR_MESSAGE = '근무종료일은 근무시작일보다 빠를 수 없습니다.';
 const DATE_RANGE_GUIDE_MESSAGE = '날짜 범위가 올바르지 않습니다. 근무시작일/근무종료일을 확인해주세요.';
 const INITIAL_FORM_STATE = {
@@ -109,6 +127,10 @@ const mapBackendRoleToFrontendRole = (role: string): UserRole => {
   return 'guardian';
 };
 
+/** 원장(PRINCIPAL) → 백엔드 KINDERGARTEN_ADMIN, 그 외 → TEACHER */
+const mapKindergartenSignupUserRole = (levelCode: string): 'KINDERGARTEN_ADMIN' | 'TEACHER' =>
+  levelCode === 'PRINCIPAL' ? 'KINDERGARTEN_ADMIN' : 'TEACHER';
+
 export function useSignup() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -127,14 +149,17 @@ export function useSignup() {
   const [childNameKeyword, setChildNameKeyword] = useState('');
   const [selectedChild, setSelectedChild] = useState<ChildLookupItem | null>(null);
   const [isChildPopupOpen, setIsChildPopupOpen] = useState(false);
-  const [childSearchKeyword, setChildSearchKeyword] = useState('');
+  const [childSearchFirst6, setChildSearchFirst6] = useState('');
+  const [childSearchBack7, setChildSearchBack7] = useState('');
   const [childSearchResults, setChildSearchResults] = useState<ChildLookupItem[]>([]);
   const [isChildSearching, setIsChildSearching] = useState(false);
   const [childSearchError, setChildSearchError] = useState('');
-  const [kindergartenKeyword, setKindergartenKeyword] = useState('');
+  /** 사업자등록번호 10자리 — 화면은 3-2-5 분할 입력 (예: 123-45-67890) */
+  const [kindergartenBizPart1, setKindergartenBizPart1] = useState('');
+  const [kindergartenBizPart2, setKindergartenBizPart2] = useState('');
+  const [kindergartenBizPart3, setKindergartenBizPart3] = useState('');
   const [selectedKindergarten, setSelectedKindergarten] = useState<KindergartenLookupItem | null>(null);
   const [isKindergartenPopupOpen, setIsKindergartenPopupOpen] = useState(false);
-  const [kindergartenSearchKeyword, setKindergartenSearchKeyword] = useState('');
   const [kindergartenSearchResults, setKindergartenSearchResults] = useState<KindergartenLookupItem[]>([]);
   const [isKindergartenSearching, setIsKindergartenSearching] = useState(false);
   const [kindergartenSearchError, setKindergartenSearchError] = useState('');
@@ -163,6 +188,47 @@ export function useSignup() {
     });
   }, [relationshipOptions, gender]);
 
+  const accountDuplicateBlocked = useMemo(
+    () =>
+      isDuplicateAccountFieldMessage(fieldErrors.loginId) ||
+      isDuplicateAccountFieldMessage(fieldErrors.email) ||
+      isDuplicateAccountFieldMessage(fieldErrors.phone),
+    [fieldErrors.loginId, fieldErrors.email, fieldErrors.phone]
+  );
+
+  const handleAccountFieldBlur = useCallback(async (field: 'loginId' | 'email' | 'phone', rawValue: string) => {
+    const trimmed = rawValue.trim();
+    if (!trimmed) {
+      setFieldErrors((p) => ({ ...p, [field]: '' }));
+      return;
+    }
+    if (field === 'loginId' && trimmed.length < 2) {
+      return;
+    }
+    if (field === 'email') {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+        setFieldErrors((p) => ({ ...p, email: '올바른 이메일 형식을 입력해주세요.' }));
+        return;
+      }
+    }
+    if (field === 'phone') {
+      const digits = trimmed.replace(/\D/g, '');
+      if (digits.length < 8) {
+        return;
+      }
+    }
+    try {
+      const { available, message } = await fetchRegisterFieldAvailability(field, trimmed);
+      setFieldErrors((p) => ({
+        ...p,
+        [field]: available ? '' : (message ?? '이미 사용 중입니다.'),
+      }));
+      if (available) setError('');
+    } catch {
+      // 포커스 아웃 검사만 생략
+    }
+  }, []);
+
   // 💡 폼 유효성 검사 (인증 여부 조건은 임시 제외)
   const isValid = useMemo(() => {
     const commonValid = !!(
@@ -174,6 +240,10 @@ export function useSignup() {
       form.phone.trim() &&
       agreeTerms
     );
+
+    if (accountDuplicateBlocked) {
+      return false;
+    }
 
     if (memberType === 'GUARDIAN') {
       return !!(
@@ -210,7 +280,18 @@ export function useSignup() {
     }
 
     return commonValid;
-  }, [form, memberType, rrnFirst6, rrnBack7, relationship, customRelationship, selectedChild, selectedKindergarten, agreeTerms]);
+  }, [
+    form,
+    memberType,
+    rrnFirst6,
+    rrnBack7,
+    relationship,
+    customRelationship,
+    selectedChild,
+    selectedKindergarten,
+    agreeTerms,
+    accountDuplicateBlocked,
+  ]);
 
   const onChange = (key: keyof typeof form, value: string) => {
     const nextValue = key === 'loginId' ? normalizeLoginId(value) : value;
@@ -243,15 +324,17 @@ export function useSignup() {
     setChildNameKeyword('');
     setSelectedChild(null);
     setIsChildPopupOpen(false);
-    setChildSearchKeyword('');
+    setChildSearchFirst6('');
+    setChildSearchBack7('');
     setChildSearchResults([]);
     setIsChildSearching(false);
     setChildSearchError('');
 
-    setKindergartenKeyword('');
+    setKindergartenBizPart1('');
+    setKindergartenBizPart2('');
+    setKindergartenBizPart3('');
     setSelectedKindergarten(null);
     setIsKindergartenPopupOpen(false);
-    setKindergartenSearchKeyword('');
     setKindergartenSearchResults([]);
     setIsKindergartenSearching(false);
     setKindergartenSearchError('');
@@ -393,22 +476,31 @@ export function useSignup() {
     setError((prev) => (prev === DATE_RANGE_GUIDE_MESSAGE ? '' : prev));
   }, [memberType, form.startDate, form.endDate]);
 
-  const searchChildren = async (keyword: string) => {
-    const trimmed = keyword.trim();
-    if (!trimmed) {
-      setChildSearchError('아이 이름을 입력해주세요.');
+  const searchChildren = async (first6Input: string, back7Input: string) => {
+    const first6 = first6Input.replace(/\D/g, '').slice(0, 6);
+    const back7 = back7Input.replace(/\D/g, '').slice(0, 7);
+
+    if (!first6 || !back7) {
+      setChildSearchError('주민등록번호 앞6자리와 뒷7자리를 모두 입력해주세요.');
       setChildSearchResults([]);
       return;
     }
 
+    if (first6.length !== 6 || back7.length !== 7) {
+      setChildSearchError('형식이 올바르지 않습니다. 앞6자리 / 뒷7자리 숫자로 입력해주세요.');
+      setChildSearchResults([]);
+      return;
+    }
+    const rrnKeyword = `${first6}-${back7}`;
+
     setChildSearchError('');
     setIsChildSearching(true);
     try {
-      const encodedName = encodeURIComponent(trimmed);
+      const encodedKeyword = encodeURIComponent(rrnKeyword);
       const candidateUrls = [
-        `${API_BASE_URL}/children?name=${encodedName}`,
-        `${API_BASE_URL}/auth/children?name=${encodedName}`,
-        `${LEGACY_API_BASE_URL}/auth/children?name=${encodedName}`,
+        `${API_BASE_URL}/children?keyword=${encodedKeyword}`,
+        `${API_BASE_URL}/auth/children?keyword=${encodedKeyword}`,
+        `${LEGACY_API_BASE_URL}/auth/children?keyword=${encodedKeyword}`,
       ];
 
       let data: ChildLookupItem[] | null = null;
@@ -425,7 +517,38 @@ export function useSignup() {
           continue;
         }
 
-        data = await response.json();
+        const payload = await response.json();
+        const rawItems: ChildApiItem[] = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.content)
+            ? payload.content
+            : [];
+
+        data = rawItems
+          .map((item) => {
+            const childId = Number(item.childId ?? item.id ?? 0);
+            const kindergartenId = Number(item.kindergartenId ?? item.kindergarten?.id ?? 0);
+            const classId =
+              item.classId !== undefined
+                ? item.classId
+                : (item.class?.id ?? null);
+            const className =
+              item.className !== undefined
+                ? item.className
+                : (item.class?.name ?? null);
+
+            return {
+              childId,
+              kindergartenId,
+              classId,
+              className,
+              name: item.name ?? '',
+              childNo: item.childNo ?? null,
+              birthDate: item.birthDate ?? null,
+              gender: item.gender ?? null,
+            } satisfies ChildLookupItem;
+          })
+          .filter((item) => item.childId > 0 && item.name);
         break;
       }
 
@@ -446,10 +569,13 @@ export function useSignup() {
     }
   };
 
-  const searchKindergartens = async (keyword: string) => {
-    const trimmed = keyword.trim();
-    if (!trimmed) {
-      setKindergartenSearchError('유치원명 또는 사업자번호를 입력해주세요.');
+  const getKindergartenBusinessDigits = () =>
+    `${kindergartenBizPart1}${kindergartenBizPart2}${kindergartenBizPart3}`.replace(/\D/g, '');
+
+  const searchKindergartens = async () => {
+    const digits = getKindergartenBusinessDigits();
+    if (digits.length !== 10) {
+      setKindergartenSearchError('사업자등록번호 10자리를 입력해주세요. (숫자만, XXX-XX-XXXXX)');
       setKindergartenSearchResults([]);
       return;
     }
@@ -457,16 +583,19 @@ export function useSignup() {
     setKindergartenSearchError('');
     setIsKindergartenSearching(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/kindergartens?keyword=${encodeURIComponent(trimmed)}`, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/auth/kindergartens?businessRegistrationNo=${encodeURIComponent(digits)}`,
+        {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+        }
+      );
       if (!response.ok) {
         throw new Error('유치원 조회에 실패했습니다.');
       }
       const data = (await response.json()) as KindergartenLookupItem[];
       setKindergartenSearchResults(data);
-      if (data.length === 0) setKindergartenSearchError('검색 결과가 없습니다.');
+      if (data.length === 0) setKindergartenSearchError('일치하는 유치원이 없습니다.');
     } catch (err) {
       setKindergartenSearchResults([]);
       setKindergartenSearchError(err instanceof Error ? err.message : '유치원 조회에 실패했습니다.');
@@ -476,37 +605,49 @@ export function useSignup() {
   };
 
   const openChildPopup = () => {
-    const keyword = childNameKeyword.trim();
-    setChildSearchKeyword(keyword);
     setChildSearchResults([]);
     setChildSearchError('');
     setIsChildPopupOpen(true);
-    if (keyword) void searchChildren(keyword);
+    if (childSearchFirst6.length === 6 && childSearchBack7.length === 7) {
+      void searchChildren(childSearchFirst6, childSearchBack7);
+    }
   };
 
   const selectChild = (child: ChildLookupItem) => {
     setSelectedChild(child);
-    setChildNameKeyword(child.name);
+    setChildNameKeyword(`${childSearchFirst6}-${childSearchBack7}`);
     setIsChildPopupOpen(false);
   };
 
   const openKindergartenPopup = () => {
-    const keyword = kindergartenKeyword.trim();
-    setKindergartenSearchKeyword(keyword);
     setKindergartenSearchResults([]);
     setKindergartenSearchError('');
     setIsKindergartenPopupOpen(true);
-    if (keyword) void searchKindergartens(keyword);
+    const digits = getKindergartenBusinessDigits();
+    if (digits.length === 10) void searchKindergartens();
   };
 
   const selectKindergarten = (kindergarten: KindergartenLookupItem) => {
     setSelectedKindergarten(kindergarten);
-    setKindergartenKeyword(kindergarten.name);
+    const digits = (kindergarten.businessRegistrationNo ?? '').replace(/\D/g, '');
+    if (digits.length === 10) {
+      setKindergartenBizPart1(digits.slice(0, 3));
+      setKindergartenBizPart2(digits.slice(3, 5));
+      setKindergartenBizPart3(digits.slice(5, 10));
+    }
     setIsKindergartenPopupOpen(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (
+      isDuplicateAccountFieldMessage(fieldErrors.loginId) ||
+      isDuplicateAccountFieldMessage(fieldErrors.email) ||
+      isDuplicateAccountFieldMessage(fieldErrors.phone)
+    ) {
+      setError('로그인 ID·이메일·연락처 중복 안내를 확인한 뒤 수정해주세요.');
+      return;
+    }
     setError('');
     setFieldErrors({});
 
@@ -635,32 +776,78 @@ export function useSignup() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: form.name,
+      // 백엔드 AuthRegisterRequest 스펙에 맞춤 (status 는 서버에서 ACTIVE 고정, 히든으로만 전송)
+      let registerBody: Record<string, unknown>;
+
+      if (memberType === 'GUARDIAN') {
+        registerBody = {
+          userRole: 'GUARDIAN',
+          status: 'ACTIVE',
           loginId: form.loginId,
           password: form.password,
           email: form.email,
           phone: form.phone,
-          memberType,
-          childId: memberType === 'GUARDIAN' ? selectedChild?.childId : null,
-          rrnFirst6: memberType === 'GUARDIAN' || memberType === 'KINDERGARTEN' ? rrnFirst6 : null,
-          rrnBack7: memberType === 'GUARDIAN' || memberType === 'KINDERGARTEN' ? rrnBack7 : null,
-          relationship: memberType === 'GUARDIAN' ? relationship : null,
-          customRelationship: memberType === 'GUARDIAN' && relationship === 'OTHER' ? customRelationship.trim() : '',
-          primaryGuardian: memberType === 'GUARDIAN' ? isPrimaryGuardian : false,
-          department: memberType === 'SUPERADMIN' ? form.department.trim() : null,
-          kindergartenId: memberType === 'KINDERGARTEN' ? selectedKindergarten?.kindergartenId : null,
-          staffNo: memberType === 'KINDERGARTEN' ? form.staffNo.trim() : null,
-          gender: memberType === 'KINDERGARTEN' ? gender : null,
-          emergencyContactName: memberType === 'KINDERGARTEN' ? form.emergencyContactName.trim() : null,
-          emergencyContactPhone: memberType === 'KINDERGARTEN' ? form.emergencyContactPhone.trim() : null,
-          level: memberType === 'KINDERGARTEN' ? form.level : null,
-          startDate: memberType === 'KINDERGARTEN' ? form.startDate : null,
-          endDate: memberType === 'KINDERGARTEN' ? (form.endDate || null) : null,
-        }),
+          name: form.name.trim(),
+          rrnFirst6,
+          rrnBack7,
+          gender,
+          address: '',
+          kindergartenId: selectedChild!.kindergartenId,
+          childId: selectedChild!.childId,
+          relationship,
+          primaryGuardian: isPrimaryGuardian,
+        };
+      } else if (memberType === 'KINDERGARTEN') {
+        registerBody = {
+          userRole: mapKindergartenSignupUserRole(form.level),
+          status: 'ACTIVE',
+          loginId: form.loginId,
+          password: form.password,
+          email: form.email,
+          phone: form.phone,
+          name: form.name.trim(),
+          rrnFirst6,
+          rrnBack7,
+          gender,
+          kindergartenId: selectedKindergarten!.kindergartenId,
+          emergencyContactName: form.emergencyContactName.trim(),
+          emergencyContactPhone: form.emergencyContactPhone.trim(),
+          level: form.level,
+          staffNo: form.staffNo.trim(),
+          startDate: form.startDate,
+          endDate: form.endDate || null,
+        };
+      } else if (memberType === 'SUPERADMIN') {
+        registerBody = {
+          userRole: 'SUPERADMIN',
+          status: 'ACTIVE',
+          loginId: form.loginId,
+          password: form.password,
+          email: form.email,
+          phone: form.phone,
+          name: form.name.trim(),
+          department: form.department.trim(),
+        };
+      } else if (memberType === 'PLATFORM_IT_ADMIN') {
+        registerBody = {
+          userRole: 'PLATFORM_IT_ADMIN',
+          status: 'ACTIVE',
+          loginId: form.loginId,
+          password: form.password,
+          email: form.email,
+          phone: form.phone,
+          name: form.name.trim(),
+        };
+      } else {
+        setError('선택한 회원유형은 아직 회원가입을 지원하지 않습니다.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(registerBody),
       });
 
       if (!response.ok) {
@@ -672,11 +859,14 @@ export function useSignup() {
 
       // 회원가입 직후 자동 로그인 처리 (로그인 상태 유지)
       const loginResponse = await loginApi({
-        loginId: form.loginId,
+        identifier: form.loginId,
         password: form.password,
       }).unwrap();
 
-      const { loginId: responseLoginId, role, token, name } = loginResponse;
+      const responseLoginId = loginResponse?.loginId ?? form.loginId;
+      const role = loginResponse?.role ?? 'guardian';
+      const token = loginResponse?.accessToken ?? loginResponse?.token ?? '';
+      const name = loginResponse?.name;
       const user = {
         id: responseLoginId,
         username: responseLoginId,
@@ -685,6 +875,15 @@ export function useSignup() {
       };
 
       dispatch(setCredentials({ user, token }));
+      try {
+        localStorage.setItem('user', JSON.stringify(user));
+        if (token) {
+          localStorage.setItem('token', token);
+          localStorage.setItem('accessToken', token);
+        }
+      } catch {
+        // 저장 실패 시에도 Redux 세션은 유지
+      }
       router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : '회원가입에 실패했습니다.');
@@ -698,15 +897,28 @@ export function useSignup() {
     verificationCode, setVerificationCode, isCodeSent, isVerifying, isVerified, verificationMessage,
     handleSendVerificationCode, handleVerifyCode,
     childNameKeyword, setChildNameKeyword, selectedChild, isChildPopupOpen, setIsChildPopupOpen,
-    childSearchKeyword, setChildSearchKeyword, childSearchResults, isChildSearching, childSearchError,
+    childSearchFirst6, setChildSearchFirst6, childSearchBack7, setChildSearchBack7, childSearchResults, isChildSearching, childSearchError,
     searchChildren, openChildPopup, selectChild,
-    kindergartenKeyword, setKindergartenKeyword, selectedKindergarten, isKindergartenPopupOpen, setIsKindergartenPopupOpen,
-    kindergartenSearchKeyword, setKindergartenSearchKeyword, kindergartenSearchResults, isKindergartenSearching, kindergartenSearchError,
-    searchKindergartens, openKindergartenPopup, selectKindergarten,
+    kindergartenBizPart1,
+    setKindergartenBizPart1,
+    kindergartenBizPart2,
+    setKindergartenBizPart2,
+    kindergartenBizPart3,
+    setKindergartenBizPart3,
+    selectedKindergarten,
+    isKindergartenPopupOpen,
+    setIsKindergartenPopupOpen,
+    kindergartenSearchResults,
+    isKindergartenSearching,
+    kindergartenSearchError,
+    searchKindergartens,
+    openKindergartenPopup,
+    selectKindergarten,
     rrnFirst6, setRrnFirst6, rrnBack7, onRrnBack7Change, gender, genderOptions,
     teacherLevelOptions,
     isPrimaryGuardian, setIsPrimaryGuardian, relationship, setRelationship, customRelationship, setCustomRelationship,
-    filteredRelationshipOptions, agreeTerms, setAgreeTerms, error, fieldErrors, isSubmitting, isValid, handleSubmit
+    filteredRelationshipOptions, agreeTerms, setAgreeTerms, error, fieldErrors, isSubmitting, isValid, handleSubmit,
+    handleAccountFieldBlur,
   };
 }
 
@@ -717,15 +929,38 @@ function mapBackendErrorToField(
   if (!setFieldErrors) return;
   if (!backendMessage) return;
 
-  if (backendMessage.includes('전화번호') && backendMessage.includes('중복')) {
-    setFieldErrors((prev) => ({ ...prev, phone: backendMessage }));
+  const lower = backendMessage.toLowerCase();
+
+  if (
+    lower.includes('uq_user_account_phone') ||
+    ((lower.includes('phone') || backendMessage.includes('전화번호') || backendMessage.includes('연락처')) &&
+      (lower.includes('unique') || lower.includes('duplicate') || backendMessage.includes('중복')))
+  ) {
+    setFieldErrors((prev) => ({
+      ...prev,
+      phone: backendMessage.includes('중복') ? backendMessage : '이미 등록된 연락처(전화번호)입니다.',
+    }));
     return;
   }
-  if (backendMessage.includes('로그인 ID') && backendMessage.includes('중복')) {
-    setFieldErrors((prev) => ({ ...prev, loginId: backendMessage }));
+  if (
+    lower.includes('uq_user_account_email') ||
+    (lower.includes('email') && (lower.includes('unique') || lower.includes('duplicate'))) ||
+    (backendMessage.includes('이메일') && backendMessage.includes('중복'))
+  ) {
+    setFieldErrors((prev) => ({
+      ...prev,
+      email: backendMessage.includes('중복') ? backendMessage : '이미 사용 중인 이메일입니다.',
+    }));
     return;
   }
-  if (backendMessage.includes('이메일') && backendMessage.includes('중복')) {
-    setFieldErrors((prev) => ({ ...prev, email: backendMessage }));
+  if (
+    lower.includes('users_login_id') ||
+    (lower.includes('login_id') && (lower.includes('unique') || lower.includes('duplicate'))) ||
+    (backendMessage.includes('로그인 ID') && backendMessage.includes('중복'))
+  ) {
+    setFieldErrors((prev) => ({
+      ...prev,
+      loginId: backendMessage.includes('중복') ? backendMessage : '이미 사용 중인 로그인 ID입니다.',
+    }));
   }
 }

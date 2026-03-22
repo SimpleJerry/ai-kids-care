@@ -15,6 +15,17 @@ export type AnnouncementSummary = {
   createdAt: string;
 };
 
+/** Spring Data Page JSON (목록 API) */
+export type PageResponse<T> = {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+};
+
 export type AnnouncementDetail = {
   id: number;
   title: string;
@@ -52,11 +63,24 @@ export type CreateAnnouncementPayload = {
   endsAt: string | null;
 };
 
+/**
+ * 백엔드 `GET /announcements`는 현재 `List<AnnouncementSummaryResponse>`(JSON 배열)를 반환한다.
+ * 과거/대체 구현에서 Spring `Page`가 오는 경우도 흡수한다.
+ */
+function normalizeAnnouncementList(
+  data: AnnouncementSummary[] | PageResponse<AnnouncementSummary> | undefined | null,
+): AnnouncementSummary[] {
+  if (data == null) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.content)) return data.content;
+  return [];
+}
+
 export async function getAnnouncements(keyword?: string) {
-  const response = await apiClient.get<AnnouncementSummary[]>('/announcements', {
-    params: keyword ? { keyword } : undefined,
+  const response = await apiClient.get<AnnouncementSummary[] | PageResponse<AnnouncementSummary>>('/announcements', {
+    params: keyword ? { keyword } : {},
   });
-  return response.data;
+  return normalizeAnnouncementList(response.data);
 }
 
 export async function getAnnouncementsMeta() {

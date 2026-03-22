@@ -35,12 +35,16 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/api/v1/auth/**", "/api/v1/children/**", "/api/v1/menus/**").permitAll()
+                        .requestMatchers("/v1/auth/**", "/v1/children", "/v1/children/**", "/v1/menus", "/v1/menus/**").permitAll()
+                        .requestMatchers("/api/v1/auth/**", "/api/v1/children", "/api/v1/children/**", "/api/v1/menus", "/api/v1/menus/**").permitAll()
                         .requestMatchers(
                                 HttpMethod.GET,
+                                "/v1/announcements",
+                                "/v1/announcements/**",
                                 "/api/v1/announcements",
                                 "/api/v1/announcements/**"
                         ).permitAll()
+                        .requestMatchers("/v1/**").authenticated()
                         .requestMatchers("/api/v1/**").authenticated()
                         .anyRequest().authenticated()
                 )

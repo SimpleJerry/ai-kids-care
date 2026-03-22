@@ -6,6 +6,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.OffsetDateTime;
 
@@ -44,13 +46,16 @@ public class Guardian {
     @Column(name = "rrn_first6", length = Integer.MAX_VALUE)
     private String rrnFirst6;
 
-    @Column(name = "gender", length = Integer.MAX_VALUE)
+    @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
+    @Column(name = "gender", columnDefinition = "gender_enum")
     private GenderEnum gender;
 
     @Column(name = "address", length = Integer.MAX_VALUE)
     private String address;
 
     @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 

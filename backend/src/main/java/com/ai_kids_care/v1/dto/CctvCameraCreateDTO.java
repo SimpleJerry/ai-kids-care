@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
+import com.ai_kids_care.v1.type.StatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,21 +8,15 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 
-/**
- * DTO for {@link com.ai_kids_care.v1.entity.CctvCamera}
- */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class CctvCameraCreateDTO implements Serializable {
-    private Long cameraId;
     private Long kindergartenId;
+    private Long createdByUserId;
     private String serialNo;
     private String cameraName;
     private String model;
-    private Long createdByUserId;
-    private String status;
+    private StatusEnum status;
     private OffsetDateTime lastSeenAt;
-    private OffsetDateTime createdAt;
-    private OffsetDateTime updatedAt;
 }

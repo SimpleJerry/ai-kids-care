@@ -20,7 +20,10 @@ public class TeacherService {
     private final TeacherMapper mapper;
 
     public Page<TeacherVO> listTeachers(String keyword, Pageable pageable) {
-        return repository.findByNameContains(keyword, pageable).map(mapper::toVO);
+        if (keyword == null || keyword.isBlank()) {
+            return repository.findAll(pageable).map(mapper::toVO);
+        }
+        return repository.findByNameContainingIgnoreCase(keyword.trim(), pageable).map(mapper::toVO);
     }
 
     public TeacherVO getTeacher(Long id) {

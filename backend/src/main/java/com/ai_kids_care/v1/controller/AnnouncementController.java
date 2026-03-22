@@ -1,56 +1,86 @@
 package com.ai_kids_care.v1.controller;
 
-import com.ai_kids_care.v1.dto.AnnouncementCreateDTO;
-import com.ai_kids_care.v1.dto.AnnouncementUpdateDTO;
-import com.ai_kids_care.v1.vo.AnnouncementVO;
+import com.ai_kids_care.v1.dto.*;
 import com.ai_kids_care.v1.service.AnnouncementService;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name="Announcement")
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/announcements")
 @RequiredArgsConstructor
 public class AnnouncementController {
 
-    private final AnnouncementService service;
+    private final AnnouncementService announcementService;
 
     @GetMapping
-    public ResponseEntity<Page<AnnouncementVO>> listAnnouncement(
-            @RequestParam(required = false) String keyword,
-            @ParameterObject @PageableDefault(size = 20) Pageable pageable
+    public ResponseEntity<List<AnnouncementSummaryResponse>> listAnnouncements(
+            @RequestParam(value = "keyword", required = false) String keyword
     ) {
-        return ResponseEntity.ok(service.listAnnouncements(keyword, pageable));
+        return ResponseEntity.ok(announcementService.listAnnouncements(keyword));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AnnouncementVO> getAnnouncement(@PathVariable Long id) {
-        return ResponseEntity.ok(service.getAnnouncement(id));
+    public ResponseEntity<AnnouncementDetailResponse> getAnnouncement(@PathVariable Long id) {
+        return ResponseEntity.ok(announcementService.getAnnouncement(id));
+    }
+
+    @GetMapping("/{id}/edit")
+    public ResponseEntity<AnnouncementEditResponse> getAnnouncementForEdit(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        String loginId = extractLoginId(authentication);
+        return ResponseEntity.ok(announcementService.getAnnouncementForEdit(loginId, id));
+    }
+
+    @GetMapping("/meta")
+    public ResponseEntity<AnnouncementMetaResponse> getAnnouncementsMeta(
+            Authentication authentication
+    ) {
+        String loginId = extractLoginId(authentication);
+        return ResponseEntity.ok(announcementService.getMeta(loginId));
     }
 
     @PostMapping
-    public ResponseEntity<AnnouncementVO> createAnnouncement(@RequestBody AnnouncementCreateDTO createDTO) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.createAnnouncement(createDTO));
+    public ResponseEntity<AnnouncementCreateResponse> createAnnouncement(
+            @RequestBody AnnouncementCreateRequest request,
+            Authentication authentication
+    ) {
+        String loginId = extractLoginId(authentication);
+        return ResponseEntity.ok(announcementService.createAnnouncement(loginId, request));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AnnouncementVO> updateAnnouncement(
+    public ResponseEntity<AnnouncementCreateResponse> updateAnnouncement(
             @PathVariable Long id,
-            @RequestBody AnnouncementUpdateDTO updateDTO
+            @RequestBody AnnouncementCreateRequest request,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(service.updateAnnouncement(id, updateDTO));
+        String loginId = extractLoginId(authentication);
+        return ResponseEntity.ok(announcementService.updateAnnouncement(loginId, id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAnnouncement(@PathVariable Long id) {
-        service.deleteAnnouncement(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<AnnouncementCreateResponse> deleteAnnouncement(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        String loginId = extractLoginId(authentication);
+        return ResponseEntity.ok(announcementService.deleteAnnouncement(loginId, id));
+    }
+
+    private String extractLoginId(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+        Object principal = authentication.getPrincipal();
+        if (principal != null && "anonymousUser".equals(principal.toString())) {
+            return null;
+        }
+        return authentication.getName();
     }
 }

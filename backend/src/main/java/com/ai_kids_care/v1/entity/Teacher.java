@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -44,7 +46,9 @@ public class Teacher {
     @Column(name = "name", length = Integer.MAX_VALUE)
     private String name;
 
-    @Column(name = "gender", length = Integer.MAX_VALUE)
+    @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
+    @Column(name = "gender", columnDefinition = "gender_enum")
     private GenderEnum gender;
 
     @Column(name = "emergency_contact_name", length = Integer.MAX_VALUE)
@@ -59,7 +63,9 @@ public class Teacher {
     @Column(name = "rrn_first6", length = Integer.MAX_VALUE)
     private String rrnFirst6;
 
-    @Column(name = "level", length = Integer.MAX_VALUE)
+    @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
+    @Column(name = "level", columnDefinition = "level_enum")
     private LevelEnum level;
 
     @Column(name = "start_date")
@@ -69,6 +75,7 @@ public class Teacher {
     private LocalDate endDate;
 
     @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 

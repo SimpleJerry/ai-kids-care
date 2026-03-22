@@ -7,6 +7,8 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.OffsetDateTime;
 
@@ -42,8 +44,9 @@ public class Announcement {
     @Column(name = "pinned_until")
     private OffsetDateTime pinnedUntil;
 
-    @Enumerated
-    @Column(name = "status", columnDefinition = "status_enum not null")
+    @ColumnDefault("'ACTIVE'")
+    @JdbcType(PostgreSQLEnumJdbcType.class)
+    @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
     @Column(name = "published_at")

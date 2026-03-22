@@ -9,7 +9,7 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface AuditLogMapper {
 
-    @Mapping(target = "auditId", ignore = true)
+    @Mapping(source = "id", target = "auditId")
     @Mapping(source = "kindergarten.id", target = "kindergartenId")
     @Mapping(source = "user.id", target = "userId")
     AuditLogVO toVO(AuditLog entity);

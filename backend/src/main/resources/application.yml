@@ -8,9 +8,6 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
 
 server:
@@ -20,6 +17,56 @@ jwt:
   secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong}
   expiration: 86400000
 
+# Logback 기본 설정 + 아래 logging.* (Spring Boot 자동 구성). 프로필별 파일 경로는 --- 문서로 분리.
+logging:
+  charset:
+    console: UTF-8
+    file: UTF-8
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  level:
+    root: INFO
+    org.springframework: WARN
+    org.hibernate.SQL: DEBUG
+    com.ai_kids_care: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+  file:
+    name: logs/app.log
+  logback:
+    rollingpolicy:
+      file-name-pattern: logs/app.%d{yyyy-MM-dd}.log
+      max-history: 2
+      total-size-cap: 1GB
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+logging:
+  level:
+    root: INFO
+  file:
+    name: logs_local/app.log
+  logback:
+    rollingpolicy:
+      file-name-pattern: logs_local/app_local.%d{yyyy-MM-dd}.log
+      max-history: 2
+      total-size-cap: 1GB
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
 logging:
   level:
     root: DEBUG
+  file:
+    name: logs_dev/app.log
+  logback:
+    rollingpolicy:
+      file-name-pattern: logs_dev/app_dev.%d{yyyy-MM-dd}.log
+      max-history: 2
+      total-size-cap: 1GB

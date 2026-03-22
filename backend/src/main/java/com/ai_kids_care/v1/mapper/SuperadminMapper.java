@@ -9,7 +9,7 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface SuperadminMapper {
 
-    @Mapping(target = "superadminId", ignore = true)
+    @Mapping(source = "id", target = "superadminId")
     @Mapping(source = "user.id", target = "userId")
     SuperadminVO toVO(Superadmin entity);
 

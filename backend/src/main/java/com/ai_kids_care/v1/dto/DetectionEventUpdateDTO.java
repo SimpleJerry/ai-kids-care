@@ -1,5 +1,7 @@
 package com.ai_kids_care.v1.dto;
 
+import com.ai_kids_care.v1.type.EventStatusEnum;
+import com.ai_kids_care.v1.type.EventTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,25 +9,18 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 
-/**
- * DTO for {@link com.ai_kids_care.v1.entity.DetectionEvent}
- */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class DetectionEventUpdateDTO implements Serializable {
-    private Long eventId;
-    private Long kindergartenId;
     private Long cameraId;
     private Long roomId;
     private Long sessionId;
-    private String eventType;
+    private EventTypeEnum eventType;
     private Integer severity;
     private Double confidence;
     private OffsetDateTime detectedAt;
     private OffsetDateTime startTime;
     private OffsetDateTime endTime;
-    private String status;
-    private OffsetDateTime createdAt;
-    private OffsetDateTime updatedAt;
+    private EventStatusEnum status;
 }

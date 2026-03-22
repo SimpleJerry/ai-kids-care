@@ -1,11 +1,14 @@
 package com.ai_kids_care.v1.entity;
 
 import com.ai_kids_care.v1.type.CameraStreamTypeEnum;
+import com.ai_kids_care.v1.type.ProtocolEnum;
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.OffsetDateTime;
 
@@ -29,6 +32,7 @@ public class CameraStream {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "camera_id", nullable = false)
     private CctvCamera cctvCameras;
 
     @Enumerated(EnumType.STRING)
@@ -44,8 +48,10 @@ public class CameraStream {
     @Column(name = "stream_password_encrypted", length = Integer.MAX_VALUE)
     private String streamPasswordEncrypted;
 
-    @Column(name = "protocol", length = Integer.MAX_VALUE)
-    private String protocol;
+    @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
+    @Column(name = "protocol", columnDefinition = "protocol_enum")
+    private ProtocolEnum protocol;
 
     @Column(name = "fps")
     private Integer fps;
@@ -60,6 +66,7 @@ public class CameraStream {
     private Boolean enabled;
 
     @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
