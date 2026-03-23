@@ -31,6 +31,7 @@ log/
 # Secrets / env files (commit templates separately if needed)
 .env
 .env.*
+!.env.local
 !.env.example
 !.env.template
 !.env.sample

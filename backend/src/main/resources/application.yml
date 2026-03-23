@@ -46,7 +46,7 @@ spring:
       on-profile: local
 logging:
   level:
-    root: INFO
+    root: DEBUG
   file:
     name: logs_local/app.log
   logback:

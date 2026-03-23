@@ -78,6 +78,50 @@ public class AnnouncementService {
     }
 
     @Transactional
+    public AnnouncementDetailResponse getAnnouncement(Long id) {
+        if (id == null) {
+            throw new RuntimeException("공지사항 ID가 필요합니다.");
+        }
+
+        int updated = jdbcTemplate.update(
+                """
+                UPDATE announcements
+                   SET view_count = view_count + 1
+                 WHERE id = ?
+                   AND deleted_at IS NULL
+                """,
+                id
+        );
+        if (updated == 0) {
+            throw new RuntimeException("공지사항을 찾을 수 없습니다.");
+        }
+
+        return jdbcTemplate.query(
+                """
+                SELECT id, title, body, view_count, published_at, created_at
+                  FROM announcements
+                 WHERE id = ?
+                   AND deleted_at IS NULL
+                """,
+                rs -> {
+                    if (!rs.next()) {
+                        throw new RuntimeException("공지사항을 찾을 수 없습니다.");
+                    }
+                    return new AnnouncementDetailResponse(
+                            rs.getLong("id"),
+                            rs.getString("title"),
+                            rs.getString("body"),
+                            rs.getLong("view_count"),
+                            rs.getTimestamp("published_at") == null ? null : rs.getTimestamp("published_at").toInstant(),
+                            rs.getTimestamp("created_at").toInstant()
+                    );
+                },
+                id
+        );
+    }
+
+
+    @Transactional
     public AnnouncementDetailResponse getAnnouncementDetail(Long id) {
         if (id == null) {
             throw new RuntimeException("공지사항 ID가 필요합니다.");
@@ -217,42 +261,34 @@ public class AnnouncementService {
         }
         validateCreateRequest(request);
 
+        Announcement entity = announcementRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new RuntimeException("공지사항을 찾을 수 없습니다."));
+
         String normalizedStatus = request.getStatus().trim().toUpperCase();
         Instant publishedAt = request.getPublishedAt();
         if (publishedAt == null && "ACTIVE".equals(normalizedStatus)) {
             publishedAt = Instant.now();
         }
 
-        int updated = jdbcTemplate.update(
-                """
-                UPDATE announcements
-                   SET title = ?,
-                       body = ?,
-                       is_pinned = ?,
-                       pinned_until = ?,
-                       status = CAST(? AS status_enum),
-                       published_at = ?,
-                       starts_at = ?,
-                       ends_at = ?,
-                       updated_at = now()
-                 WHERE id = ?
-                   AND deleted_at IS NULL
-                """,
-                request.getTitle().trim(),
-                request.getBody().trim(),
-                Boolean.TRUE.equals(request.getPinned()),
-                toTimestamp(request.getPinnedUntil()),
-                normalizedStatus,
-                toTimestamp(publishedAt),
-                toTimestamp(request.getStartsAt()),
-                toTimestamp(request.getEndsAt()),
-                id
-        );
+        AnnouncementUpdateDTO updateDTO = new AnnouncementUpdateDTO();
+        updateDTO.setTitle(request.getTitle().trim());
+        updateDTO.setBody(request.getBody().trim());
+        updateDTO.setIsPinned(Boolean.TRUE.equals(request.getPinned()));
+        updateDTO.setStatus(normalizedStatus);
+        updateDTO.setPublishedAt(toOffsetDateTime(publishedAt));
+        updateDTO.setPinnedUntil(toOffsetDateTime(request.getPinnedUntil()));
+        updateDTO.setStartsAt(toOffsetDateTime(request.getStartsAt()));
+        updateDTO.setEndsAt(toOffsetDateTime(request.getEndsAt()));
 
-        if (updated == 0) {
-            throw new RuntimeException("공지사항을 찾을 수 없습니다.");
-        }
+        announcementMapper.updateEntity(updateDTO, entity);
+        // JDBC와 동일하게 NULL이면 컬럼 비움. MapStruct는 null DTO 필드를 무시하므로 시각 필드는 요청 값으로 덮어쓴다.
+        entity.setPinnedUntil(toOffsetDateTime(request.getPinnedUntil()));
+        entity.setPublishedAt(toOffsetDateTime(publishedAt));
+        entity.setStartsAt(toOffsetDateTime(request.getStartsAt()));
+        entity.setEndsAt(toOffsetDateTime(request.getEndsAt()));
+        entity.setUpdatedAt(OffsetDateTime.now());
 
+        announcementRepository.save(entity);
         return new AnnouncementCreateResponse(id, "공지사항이 수정되었습니다.");
     }
 
@@ -268,21 +304,17 @@ public class AnnouncementService {
             throw new RuntimeException("공지사항 ID가 필요합니다.");
         }
 
-        int updated = jdbcTemplate.update(
-                """
-                UPDATE announcements
-                   SET deleted_at = now(),
-                       updated_at = now()
-                 WHERE id = ?
-                   AND deleted_at IS NULL
-                """,
-                id
-        );
+        Announcement entity = announcementRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new RuntimeException("공지사항을 찾을 수 없습니다."));
 
-        if (updated == 0) {
-            throw new RuntimeException("공지사항을 찾을 수 없습니다.");
-        }
+        OffsetDateTime now = OffsetDateTime.now();
+        AnnouncementUpdateDTO updateDTO = new AnnouncementUpdateDTO();
+        updateDTO.setDeletedAt(now);
 
+        announcementMapper.updateEntity(updateDTO, entity);
+        entity.setUpdatedAt(now);
+
+        announcementRepository.save(entity);
         return new AnnouncementCreateResponse(id, "공지사항이 삭제되었습니다.");
     }
 

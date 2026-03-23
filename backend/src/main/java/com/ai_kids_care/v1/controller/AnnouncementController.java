@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.dto.*;
-import com.ai_kids_care.v1.service.AnnouncementsService;
+import com.ai_kids_care.v1.service.AnnouncementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -14,7 +14,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AnnouncementController {
 
-    private final AnnouncementsService announcementsService;
+    private final AnnouncementService announcementsService;
 
     @GetMapping
     public ResponseEntity<List<AnnouncementSummaryResponse>> listAnnouncements(
