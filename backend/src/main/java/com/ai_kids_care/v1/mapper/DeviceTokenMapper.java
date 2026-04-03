@@ -9,7 +9,7 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface DeviceTokenMapper {
 
-    @Mapping(target = "deviceId", ignore = true)
+    @Mapping(source = "id", target = "deviceId")
     @Mapping(source = "user.id", target = "userId")
     DeviceTokenVO toVO(DeviceToken entity);
 

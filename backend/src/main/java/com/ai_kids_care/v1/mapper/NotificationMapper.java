@@ -9,20 +9,22 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface NotificationMapper {
 
-    @Mapping(target = "notificationId", ignore = true)
-    @Mapping(source = "detectionEvents.cctvCameras.kindergarten.id", target = "kindergartenId")
+    @Mapping(source = "id", target = "notificationId")
+    @Mapping(source = "kindergarten.id", target = "kindergartenId")
     @Mapping(source = "detectionEvents.id", target = "eventId")
     @Mapping(source = "recipientUser.id", target = "recipientUserId")
     NotificationVO toVO(Notification entity);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(source = "kindergartenId", target = "kindergarten.id")
     @Mapping(source = "eventId", target = "detectionEvents.id")
     @Mapping(source = "recipientUserId", target = "recipientUser.id")
     Notification toEntity(NotificationCreateDTO dto);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
+    @Mapping(source = "kindergartenId", target = "kindergarten.id")
     @Mapping(source = "eventId", target = "detectionEvents.id")
     @Mapping(source = "recipientUserId", target = "recipientUser.id")
     @Mapping(target = "createdAt", ignore = true)
