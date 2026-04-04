@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
+import com.ai_kids_care.v1.type.StatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,7 +21,7 @@ public class CctvCameraUpdateDTO implements Serializable {
     private String cameraName;
     private String model;
     private Long createdByUserId;
-    private String status;
+    private StatusEnum status;
     private OffsetDateTime lastSeenAt;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;

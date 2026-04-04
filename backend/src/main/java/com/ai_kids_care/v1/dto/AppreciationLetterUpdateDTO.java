@@ -1,5 +1,7 @@
 package com.ai_kids_care.v1.dto;
 
+import com.ai_kids_care.v1.type.AppreciationTargetTypeEnum;
+import com.ai_kids_care.v1.type.StatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,12 +19,12 @@ public class AppreciationLetterUpdateDTO implements Serializable {
     private Long letterId;
     private Long kindergartenId;
     private Long senderUserId;
-    private String targetType;
+    private AppreciationTargetTypeEnum targetType;
     private Long targetId;
     private String title;
     private String content;
     private Boolean isPublic;
-    private String status;
+    private StatusEnum status;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

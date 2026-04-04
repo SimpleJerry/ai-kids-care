@@ -1,5 +1,7 @@
 package com.ai_kids_care.v1.dto;
 
+import com.ai_kids_care.v1.type.EventStatusEnum;
+import com.ai_kids_care.v1.type.EventTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -28,8 +30,8 @@ public class DetectionEventCreateDTO implements Serializable {
     private Long roomId;
     @NotNull
     private Long sessionId;
-    @NotBlank
-    private String eventType;
+    @NotNull
+    private EventTypeEnum eventType;
     @NotNull
     @Min(0)
     private Integer severity;
@@ -43,8 +45,8 @@ public class DetectionEventCreateDTO implements Serializable {
     private OffsetDateTime startTime;
     @NotNull
     private OffsetDateTime endTime;
-    @NotBlank
-    private String status;
+    @NotNull
+    private EventStatusEnum status;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

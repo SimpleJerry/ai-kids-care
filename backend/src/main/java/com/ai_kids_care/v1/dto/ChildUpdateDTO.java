@@ -1,5 +1,7 @@
 package com.ai_kids_care.v1.dto;
 
+import com.ai_kids_care.v1.type.GenderEnum;
+import com.ai_kids_care.v1.type.StatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,11 +24,11 @@ public class ChildUpdateDTO implements Serializable {
     private String rrnEncrypted;
     private String rrnFirst6;
     private LocalDate birthDate;
-    private String gender;
+    private GenderEnum gender;
     private String address;
     private LocalDate enrollDate;
     private LocalDate leaveDate;
-    private String status;
+    private StatusEnum status;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

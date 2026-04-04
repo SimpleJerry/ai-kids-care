@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
+import com.ai_kids_care.v1.type.StatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,7 +21,7 @@ public class AnnouncementCreateDTO implements Serializable {
     private String body;
     private Boolean isPinned;
     private OffsetDateTime pinnedUntil;
-    private String status;
+    private StatusEnum status;
     private OffsetDateTime publishedAt;
     private OffsetDateTime startsAt;
     private OffsetDateTime endsAt;
