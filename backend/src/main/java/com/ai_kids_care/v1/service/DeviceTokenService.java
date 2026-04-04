@@ -19,8 +19,7 @@ public class DeviceTokenService {
     private final DeviceTokenRepository repository;
     private final DeviceTokenMapper mapper;
 
-    public Page<DeviceTokenVO> listDeviceTokens(String keyword, Pageable pageable) {
-        // TODO: filter DeviceToken by keyword
+    public Page<DeviceTokenVO> listDeviceTokens(Pageable pageable) {
         return repository.findAll(pageable).map(mapper::toVO);
     }
 

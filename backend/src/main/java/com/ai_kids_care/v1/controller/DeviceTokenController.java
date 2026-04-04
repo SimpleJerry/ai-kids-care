@@ -25,10 +25,9 @@ public class DeviceTokenController {
 
     @GetMapping
     public ResponseEntity<Page<DeviceTokenVO>> listDeviceToken(
-            @RequestParam(required = false) String keyword,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
-        return ResponseEntity.ok(service.listDeviceTokens(keyword, pageable));
+        return ResponseEntity.ok(service.listDeviceTokens(pageable));
     }
 
     @GetMapping("/{id}")
